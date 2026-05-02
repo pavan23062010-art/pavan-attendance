@@ -99,6 +99,7 @@ export default function DashboardScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <LinearGradient colors={[school.primaryColor, "#1a3aaa"]} style={[styles.header, { paddingTop: topPad + 12 }]}>
+        <Text style={styles.headerGreeting}>Hi, {currentUser?.displayName ?? "there"} 👋</Text>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <Text style={styles.headerSub}>{school.nameLine1} {school.nameLine2} · AY {school.academicYear}</Text>
       </LinearGradient>
@@ -154,6 +155,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 20 },
+  headerGreeting: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: "500", marginBottom: 2 },
   headerTitle: { color: "#fff", fontSize: 26, fontWeight: "800" },
   headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
   scroll: { flex: 1 },
