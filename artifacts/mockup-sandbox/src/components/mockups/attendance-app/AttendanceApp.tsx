@@ -34,12 +34,14 @@ const ACADEMIC_MONTHS = [
   "Jan-2027","Feb-2027","Mar-2027","Apr-2027","May-2027","Jun-2027",
 ];
 const MONTH_LABELS = ["Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun"];
-const WORKING_DAYS_PER_MONTH = [25,26,24,25,22,20,26,24,27,25,26,24];
+// Actual calendar days per month: Jul–Jun (2026–2027)
+const WORKING_DAYS_PER_MONTH = [31,31,30,31,30,31,31,28,31,30,31,30];
 const PIE_COLORS = ["#4e73df","#1cc88a","#f6c23e","#e74a3b","#36b9cc"];
 
 const LS_USERS    = "sa2_users";
 const LS_STUDENTS = "sa2_students";
-const LS_RECORDS  = "sa2_records";
+
+const LS_RECORDS  = "sa2_records_v2";
 const LS_CLASSES  = "sa2_classes";
 
 // ══════════════════════════════════════════════════════════════════════════════
