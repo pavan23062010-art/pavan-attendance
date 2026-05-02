@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useContext, createContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -40,6 +40,30 @@ const LS_USERS    = "sa2_users";
 const LS_STUDENTS = "sa2_students";
 const LS_RECORDS  = "sa2_records_v2";
 const LS_CLASSES  = "sa2_classes";
+const LS_SCHOOL   = "sa2_school";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SCHOOL INFO — editable by admin from Settings
+// ══════════════════════════════════════════════════════════════════════════════
+interface SchoolInfo {
+  nameLine1: string;
+  nameLine2: string;
+  location: string;
+  academicYear: string;
+  madeBy: string;
+  primaryColor: string;
+  accentColor: string;
+}
+const DEFAULT_SCHOOL: SchoolInfo = {
+  nameLine1: "PAVAN GROUP OF",
+  nameLine2: "SCHOOLS",
+  location: "Vinukonda",
+  academicYear: "2026 – 2027",
+  madeBy: "Pavan",
+  primaryColor: "#4e73df",
+  accentColor: "#1cc88a",
+};
+const SchoolContext = createContext<SchoolInfo>(DEFAULT_SCHOOL);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SEED DATA
@@ -129,7 +153,7 @@ function Badge({ label, color }: { label: string; color: string }){
 // ══════════════════════════════════════════════════════════════════════════════
 // DOC DOWNLOAD
 // ══════════════════════════════════════════════════════════════════════════════
-function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: string){
+function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: string, school: SchoolInfo = DEFAULT_SCHOOL){
   const wd = rec.workingDays;
   const days = Array.from({length:wd},(_,i)=>i+1);
   const clsStu = students.filter(s=>s.class===cls && s.section===sec);
@@ -186,9 +210,9 @@ function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: st
   </style>
 </head>
 <body>
-  <h1>PAVAN GROUP OF SCHOOLS — VINUKONDA</h1>
+  <h1>${school.nameLine1} ${school.nameLine2} — ${school.location.toUpperCase()}</h1>
   <h2>Attendance Report &nbsp;|&nbsp; Class ${cls} – Section ${sec} &nbsp;|&nbsp; ${rec.month}</h2>
-  <p class="meta">Academic Year 2026–2027 &nbsp;|&nbsp; Working Days: ${wd} &nbsp;|&nbsp; Total Students: ${clsStu.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString()}</p>
+  <p class="meta">Academic Year ${school.academicYear} &nbsp;|&nbsp; Working Days: ${wd} &nbsp;|&nbsp; Total Students: ${clsStu.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString()}</p>
   <div class="summary">
     <div class="sum-box"><div class="sum-val">${clsStu.length}</div><div class="sum-lbl">Students</div></div>
     <div class="sum-box"><div class="sum-val">${wd}</div><div class="sum-lbl">Working Days</div></div>
@@ -213,7 +237,7 @@ function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: st
     <tbody>${rows}</tbody>
   </table>
   <div class="footer">
-    Made by Pavan &nbsp;|&nbsp; School Attendance System &nbsp;|&nbsp; Academic Year 2026–2027
+    Made by ${school.madeBy} &nbsp;|&nbsp; School Attendance System &nbsp;|&nbsp; Academic Year ${school.academicYear}
   </div>
 </body>
 </html>`;
@@ -229,10 +253,13 @@ function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: st
 // ══════════════════════════════════════════════════════════════════════════════
 // SCHOOL LOGO
 // ══════════════════════════════════════════════════════════════════════════════
-function SchoolLogo({ size = 96, glow = false }: { size?: number; glow?: boolean }){
+function SchoolLogo({ size = 96, glow = false, primary, accent }: { size?: number; glow?: boolean; primary?: string; accent?: string }){
+  const school = useContext(SchoolContext);
+  const p = primary ?? school.primaryColor;
+  const a = accent ?? school.accentColor;
   return(
     <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={glow ? { filter:"drop-shadow(0 0 18px #4e73dfaa) drop-shadow(0 0 40px #1cc88a55)" } : {}}>
+      style={glow ? { filter:`drop-shadow(0 0 18px ${p}aa) drop-shadow(0 0 40px ${a}55)` } : {}}>
       <circle cx="60" cy="60" r="58" fill="url(#logoBg)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
       <defs>
         <radialGradient id="logoBg" cx="40%" cy="35%" r="70%">
@@ -301,6 +328,7 @@ function TypewriterText({ text }: { text: string }){
 }
 
 function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAccount)=>void }){
+  const school = useContext(SchoolContext);
   const [username,setUsername]=useState(""); const [pass,setPass]=useState("");
   const [err,setErr]=useState(""); const [loading,setLoading]=useState(false);
   const [showPass,setShowPass]=useState(false); const [focused,setFocused]=useState<string|null>(null);
@@ -330,12 +358,12 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
         </motion.div>
         <motion.div className="text-center" initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{delay:0.5}}>
           <p className="text-white/50 text-xs font-medium tracking-[0.25em] uppercase mb-2">Welcome to</p>
-          <h1 className="text-2xl font-black text-white leading-tight mb-0.5" style={{textShadow:"0 0 40px #4e73df99"}}>PAVAN GROUP OF</h1>
-          <h1 className="text-2xl font-black mb-1" style={{background:"linear-gradient(90deg,#f6c23e,#1cc88a)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>SCHOOLS</h1>
-          <p className="text-white/60 text-sm font-semibold tracking-widest uppercase mb-1">Vinukonda</p>
-          <div className="w-16 h-0.5 mx-auto mb-3 rounded-full" style={{background:"linear-gradient(90deg,#4e73df,#1cc88a)"}}/>
+          <h1 className="text-2xl font-black text-white leading-tight mb-0.5" style={{textShadow:`0 0 40px ${school.primaryColor}99`}}>{school.nameLine1}</h1>
+          <h1 className="text-2xl font-black mb-1" style={{background:`linear-gradient(90deg,#f6c23e,${school.accentColor})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{school.nameLine2}</h1>
+          <p className="text-white/60 text-sm font-semibold tracking-widest uppercase mb-1">{school.location}</p>
+          <div className="w-16 h-0.5 mx-auto mb-3 rounded-full" style={{background:`linear-gradient(90deg,${school.primaryColor},${school.accentColor})`}}/>
           <p className="text-white/35 text-xs">Attendance Management System</p>
-          <p className="text-white/40 text-xs mt-1"><TypewriterText text="Academic Year 2026 – 2027"/></p>
+          <p className="text-white/40 text-xs mt-1"><TypewriterText text={`Academic Year ${school.academicYear}`}/></p>
         </motion.div>
         <motion.div className="flex gap-3 mt-8" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:1}}>
           {[{icon:"🏫",label:"Classes",value:"1–10"},{icon:"📚",label:"Sections",value:"A,B,C"},{icon:"📋",label:"Tracking",value:"Daily"}].map(s=>(
@@ -350,7 +378,7 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
         </motion.div>
         <motion.p className="absolute bottom-6 text-white/25 text-xs tracking-widest uppercase"
           initial={{opacity:0}} animate={{opacity:1}} transition={{delay:1.8}}>
-          Made by <span className="text-white/50 font-semibold">Pavan</span>
+          Made by <span className="text-white/50 font-semibold">{school.madeBy}</span>
         </motion.p>
       </motion.div>
       <div className="hidden md:block w-px self-stretch my-16" style={{background:"linear-gradient(to bottom,transparent,rgba(255,255,255,0.15),transparent)"}}/>
@@ -361,7 +389,7 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
           <div className="rounded-3xl p-8" style={{background:"rgba(255,255,255,0.06)",backdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.12)",boxShadow:"0 24px 80px rgba(0,0,0,0.5)"}}>
             <div className="mb-7">
               <h2 className="text-white text-2xl font-bold">Sign In</h2>
-              <p className="text-white/40 text-sm mt-1">Pavan Group of Schools · Vinukonda</p>
+              <p className="text-white/40 text-sm mt-1">{school.nameLine1} {school.nameLine2} · {school.location}</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-5">
               {[{key:"user",label:"Username",icon:"👤",value:username,set:setUsername,type:"text",ph:"Enter username"},
@@ -389,7 +417,7 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
               </motion.button>
             </form>
           </div>
-          <p className="text-center text-white/20 text-xs mt-5 tracking-widest uppercase">Made by <span className="text-white/40 font-semibold">Pavan</span></p>
+          <p className="text-center text-white/20 text-xs mt-5 tracking-widest uppercase">Made by <span className="text-white/40 font-semibold">{school.madeBy}</span></p>
         </motion.div>
       </motion.div>
     </div>
@@ -404,13 +432,14 @@ const NAV_TEACHER = [{id:"dashboard",icon:"🏠",label:"Dashboard"},{id:"daily",
 
 function Sidebar({ active,onNav,onLogout,user }: { active:string; onNav:(id:string)=>void; onLogout:()=>void; user:UserAccount }){
   const nav = user.role==="admin" ? NAV_ADMIN : NAV_TEACHER;
+  const school = useContext(SchoolContext);
   return(
-    <div className="flex flex-col h-full py-4 px-3" style={{background:"linear-gradient(180deg,#4e73df 0%,#224abe 100%)"}}>
+    <div className="flex flex-col h-full py-4 px-3" style={{background:`linear-gradient(180deg,${school.primaryColor} 0%,#224abe 100%)`}}>
       <div className="text-center mb-4 px-2">
         <div className="flex justify-center mb-2"><SchoolLogo size={52}/></div>
-        <p className="text-white font-black text-xs leading-tight">PAVAN GROUP</p>
-        <p className="text-white font-black text-xs leading-tight">OF SCHOOLS</p>
-        <p className="text-white/60 text-[10px] tracking-widest uppercase">Vinukonda</p>
+        <p className="text-white font-black text-xs leading-tight">{school.nameLine1}</p>
+        <p className="text-white font-black text-xs leading-tight">{school.nameLine2}</p>
+        <p className="text-white/60 text-[10px] tracking-widest uppercase">{school.location}</p>
         <div className="mt-3 px-3 py-2 rounded-xl" style={{background:"rgba(255,255,255,0.12)"}}>
           <p className="text-white text-xs font-semibold truncate">{user.displayName}</p>
           <p className="text-white/50 text-xs capitalize">{user.role}{user.role==="teacher"&&user.assignedClass?` · Cl ${user.assignedClass}${user.assignedSection}`:""}</p>
@@ -485,6 +514,7 @@ function StatCard({ label,value,sub,color,icon }: { label:string; value:string|n
 // DASHBOARD
 // ══════════════════════════════════════════════════════════════════════════════
 function Dashboard({ students,records,selClass,selSec }: { students:Student[]; records:MonthRecord[]; selClass:number; selSec:string }){
+  const school = useContext(SchoolContext);
   const clsStu = students.filter(s=>s.class===selClass&&s.section===selSec);
   const clsRec = records.filter(r=>r.class===selClass&&r.section===selSec);
   const totalWD = clsRec.reduce((a,r)=>a+r.workingDays,0);
@@ -494,7 +524,7 @@ function Dashboard({ students,records,selClass,selSec }: { students:Student[]; r
   return(
     <div className="space-y-5">
       <div><h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
-        <p className="text-sm text-gray-500">Class {selClass} – Section {selSec} · AY 2026–2027</p></div>
+        <p className="text-sm text-gray-500">Class {selClass} – Section {selSec} · AY {school.academicYear}</p></div>
       <div className="grid grid-cols-4 gap-4">
         <StatCard label="Students" value={clsStu.length} icon="👨‍🎓" color="#4e73df" sub="Enrolled"/>
         <StatCard label="Working Days" value={totalWD} icon="📅" color="#1cc88a" sub="Full year"/>
@@ -644,7 +674,7 @@ function MonthlyReport({ students,records,selClass,selSec }: { students:Student[
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30">
             {ACADEMIC_MONTHS.map(m=><option key={m}>{m}</option>)}
           </select>
-          {rec&&<motion.button whileHover={{scale:1.02}} whileTap={{scale:0.97}} onClick={()=>downloadDoc(students,rec,selClass,selSec)}
+          {rec&&<motion.button whileHover={{scale:1.02}} whileTap={{scale:0.97}} onClick={()=>downloadDoc(students,rec,selClass,selSec,school)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow-md"
             style={{background:"linear-gradient(135deg,#1a5276,#2e86c1)"}}>📄 Download DOC</motion.button>}
         </div>
@@ -1023,24 +1053,116 @@ function ManageUsers({ users,currentUser,onUpdate }: { users:UserAccount[]; curr
 // ══════════════════════════════════════════════════════════════════════════════
 // SETTINGS
 // ══════════════════════════════════════════════════════════════════════════════
-function Settings({ currentUser,users,onUpdate }: { currentUser:UserAccount; users:UserAccount[]; onUpdate:(u:UserAccount[])=>void }){
+function Settings({ currentUser,users,onUpdate,school,onUpdateSchool }: { currentUser:UserAccount; users:UserAccount[]; onUpdate:(u:UserAccount[])=>void; school:SchoolInfo; onUpdateSchool:(s:SchoolInfo)=>void }){
   const [oldPass,setOldPass]=useState(""); const [newPass,setNewPass]=useState(""); const [confirm,setConfirm]=useState("");
   const [dispName,setDispName]=useState(currentUser.displayName);
   const [msg,setMsg]=useState<{text:string;ok:boolean}|null>(null);
+  const [schoolMsg,setSchoolMsg]=useState<{text:string;ok:boolean}|null>(null);
+  const [draft,setDraft]=useState<SchoolInfo>(school);
+  useEffect(()=>setDraft(school),[school]);
   function changePass(e:React.FormEvent){ e.preventDefault(); if(oldPass!==currentUser.password){setMsg({text:"Current password incorrect.",ok:false});return;} if(newPass.length<4){setMsg({text:"Min 4 characters.",ok:false});return;} if(newPass!==confirm){setMsg({text:"Passwords do not match.",ok:false});return;} onUpdate(users.map(u=>u.id===currentUser.id?{...u,password:newPass}:u)); setMsg({text:"Password changed!",ok:true}); setOldPass(""); setNewPass(""); setConfirm(""); setTimeout(()=>setMsg(null),3000); }
   function updateName(e:React.FormEvent){ e.preventDefault(); if(!dispName.trim()) return; onUpdate(users.map(u=>u.id===currentUser.id?{...u,displayName:dispName.trim()}:u)); setMsg({text:"Name updated!",ok:true}); setTimeout(()=>setMsg(null),2000); }
+  function saveSchool(e:React.FormEvent){ e.preventDefault(); if(!draft.nameLine1.trim()||!draft.nameLine2.trim()||!draft.location.trim()){setSchoolMsg({text:"Name fields are required.",ok:false});return;} onUpdateSchool(draft); setSchoolMsg({text:"School info updated!",ok:true}); setTimeout(()=>setSchoolMsg(null),2500); }
+  function resetSchool(){ setDraft(DEFAULT_SCHOOL); onUpdateSchool(DEFAULT_SCHOOL); setSchoolMsg({text:"Reset to defaults.",ok:true}); setTimeout(()=>setSchoolMsg(null),2000); }
   return(
-    <div className="space-y-5 max-w-lg">
-      <div><h2 className="text-xl font-bold text-gray-800">Settings</h2><p className="text-sm text-gray-500">Manage your account</p></div>
+    <div className="space-y-5 max-w-2xl">
+      <div><h2 className="text-xl font-bold text-gray-800">Settings</h2><p className="text-sm text-gray-500">Manage your account and school branding</p></div>
+
+      {/* ── School Info (admin only) ── */}
+      {currentUser.role==="admin"&&(
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-gray-700 text-sm">🏫 School Branding</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Edit school name, location, and colors — updates everywhere instantly</p>
+            </div>
+            <button onClick={resetSchool} className="text-xs text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-red-200 transition-all">Reset defaults</button>
+          </div>
+          <form onSubmit={saveSchool} className="space-y-4">
+            {/* Live preview strip */}
+            <div className="rounded-2xl p-4 flex items-center gap-3" style={{background:`linear-gradient(135deg,${draft.primaryColor},${draft.accentColor})`}}>
+              <SchoolLogo size={48} primary={draft.primaryColor} accent={draft.accentColor}/>
+              <div>
+                <p className="text-white font-black text-sm leading-tight">{draft.nameLine1||"Name Line 1"}</p>
+                <p className="text-white font-black text-sm leading-tight">{draft.nameLine2||"Name Line 2"}</p>
+                <p className="text-white/70 text-xs tracking-widest uppercase">{draft.location||"Location"}</p>
+              </div>
+              <div className="ml-auto text-right">
+                <p className="text-white/70 text-xs">AY {draft.academicYear}</p>
+                <p className="text-white/50 text-xs">by {draft.madeBy}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {label:"School Name — Line 1",key:"nameLine1" as keyof SchoolInfo,ph:"e.g. PAVAN GROUP OF"},
+                {label:"School Name — Line 2",key:"nameLine2" as keyof SchoolInfo,ph:"e.g. SCHOOLS"},
+                {label:"Location / City",key:"location" as keyof SchoolInfo,ph:"e.g. Vinukonda"},
+                {label:"Academic Year",key:"academicYear" as keyof SchoolInfo,ph:"e.g. 2026 – 2027"},
+                {label:"Made by (footer credit)",key:"madeBy" as keyof SchoolInfo,ph:"e.g. Pavan"},
+              ].map(f=>(
+                <div key={f.key} className={f.key==="madeBy"?"col-span-2":""}>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">{f.label}</label>
+                  <input value={String(draft[f.key])} onChange={e=>setDraft(d=>({...d,[f.key]:e.target.value}))} placeholder={f.ph}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+                </div>
+              ))}
+            </div>
+
+            {/* Color pickers */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Primary Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.primaryColor} onChange={e=>setDraft(d=>({...d,primaryColor:e.target.value}))}
+                    className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5"/>
+                  <input value={draft.primaryColor} onChange={e=>setDraft(d=>({...d,primaryColor:e.target.value}))} placeholder="#4e73df"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+                </div>
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {["#4e73df","#2563eb","#7c3aed","#dc2626","#ea580c","#0891b2","#0f766e"].map(c=>(
+                    <button key={c} type="button" onClick={()=>setDraft(d=>({...d,primaryColor:c}))}
+                      className="w-6 h-6 rounded-full border-2 transition-all" style={{background:c,borderColor:draft.primaryColor===c?"#1f2937":"transparent"}}/>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Accent Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={draft.accentColor} onChange={e=>setDraft(d=>({...d,accentColor:e.target.value}))}
+                    className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5"/>
+                  <input value={draft.accentColor} onChange={e=>setDraft(d=>({...d,accentColor:e.target.value}))} placeholder="#1cc88a"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+                </div>
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {["#1cc88a","#16a34a","#0891b2","#f59e0b","#f6c23e","#e74a3b","#8b5cf6"].map(c=>(
+                    <button key={c} type="button" onClick={()=>setDraft(d=>({...d,accentColor:c}))}
+                      className="w-6 h-6 rounded-full border-2 transition-all" style={{background:c,borderColor:draft.accentColor===c?"#1f2937":"transparent"}}/>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <AnimatePresence>{schoolMsg&&<motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="px-4 py-2.5 rounded-xl text-xs" style={{background:schoolMsg.ok?"#dcfce7":"#fee2e2",color:schoolMsg.ok?"#16a34a":"#dc2626"}}>{schoolMsg.ok?"✓ ":"⚠️ "}{schoolMsg.text}</motion.div>}</AnimatePresence>
+            <motion.button type="submit" whileHover={{scale:1.02}} whileTap={{scale:0.97}}
+              className="w-full py-3 rounded-xl text-white font-semibold text-sm"
+              style={{background:`linear-gradient(135deg,${draft.primaryColor},${draft.accentColor})`}}>
+              Save School Info
+            </motion.button>
+          </form>
+        </div>
+      )}
+
+      {/* ── Account ── */}
       <div className="bg-white rounded-2xl p-5 shadow-sm">
         <div className="flex items-center gap-4 mb-5">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold" style={{background:currentUser.role==="admin"?"linear-gradient(135deg,#f6c23e,#e74a3b)":"linear-gradient(135deg,#4e73df,#1cc88a)"}}>{currentUser.displayName.charAt(0)}</div>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold" style={{background:currentUser.role==="admin"?`linear-gradient(135deg,#f6c23e,#e74a3b)`:`linear-gradient(135deg,${school.primaryColor},${school.accentColor})`}}>{currentUser.displayName.charAt(0)}</div>
           <div><p className="font-bold text-gray-800">{currentUser.displayName}</p><p className="text-sm text-gray-500">{currentUser.username} · <span className="capitalize">{currentUser.role}</span></p>{currentUser.role==="teacher"&&<p className="text-xs text-blue-500">Class {currentUser.assignedClass} – Section {currentUser.assignedSection}</p>}</div>
         </div>
         <form onSubmit={updateName}>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Display Name</label>
           <div className="flex gap-3"><input value={dispName} onChange={e=>setDispName(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
-          <button type="submit" className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>Update</button></div>
+          <button type="submit" className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold" style={{background:`linear-gradient(135deg,${school.primaryColor},${school.accentColor})`}}>Update</button></div>
         </form>
       </div>
       <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -1051,7 +1173,7 @@ function Settings({ currentUser,users,onUpdate }: { currentUser:UserAccount; use
             <input type="password" value={f.val} onChange={e=>f.set(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/></div>
           ))}
           <AnimatePresence>{msg&&<motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="px-4 py-3 rounded-xl text-sm" style={{background:msg.ok?"#dcfce7":"#fee2e2",color:msg.ok?"#16a34a":"#dc2626"}}>{msg.ok?"✓ ":"⚠️ "}{msg.text}</motion.div>}</AnimatePresence>
-          <button type="submit" className="w-full py-3 rounded-xl text-white font-semibold text-sm" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>Change Password</button>
+          <button type="submit" className="w-full py-3 rounded-xl text-white font-semibold text-sm" style={{background:`linear-gradient(135deg,${school.primaryColor},${school.accentColor})`}}>Change Password</button>
         </form>
       </div>
     </div>
@@ -1120,6 +1242,7 @@ export default function App(){
   const [students,setStudents] = useLS<Student[]>(LS_STUDENTS, SEED_STUDENTS);
   const [records,setRecords]   = useLS<MonthRecord[]>(LS_RECORDS, SEED_RECORDS);
   const [classes,setClasses]   = useLS<number[]>(LS_CLASSES, DEFAULT_CLASSES);
+  const [school,setSchool]     = useLS<SchoolInfo>(LS_SCHOOL, DEFAULT_SCHOOL);
   const [currentUser,setCurrentUser] = useState<UserAccount|null>(null);
   const [page,setPage]         = useState("dashboard");
   const [selClass,setSelClass] = useState(1);
@@ -1130,10 +1253,9 @@ export default function App(){
     setCurrentUser(u);
     if(u.role==="teacher"&&u.assignedClass){ setSelClass(u.assignedClass); setSelSec(u.assignedSection??"A"); }
   }
-  if(!currentUser) return <LoginPage users={users} onLogin={handleLogin}/>;
 
-  const eClass = currentUser.role==="teacher"?(currentUser.assignedClass??selClass):selClass;
-  const eSec   = currentUser.role==="teacher"?(currentUser.assignedSection??selSec):selSec;
+  const eClass = currentUser ? (currentUser.role==="teacher"?(currentUser.assignedClass??selClass):selClass) : selClass;
+  const eSec   = currentUser ? (currentUser.role==="teacher"?(currentUser.assignedSection??selSec):selSec) : selSec;
   const safeClass = classes.includes(eClass)?eClass:(classes[0]??1);
 
   function addStudent(s: Student){ setStudents(p=>[...p,s]); setRecords(p=>p.map(r=>r.class===s.class&&r.section===s.section?{...r,daily:{...r.daily,[s.id]:{}}}:r)); }
@@ -1148,6 +1270,12 @@ export default function App(){
   }
   function removeClass(cls: number){ setClasses(p=>p.filter(c=>c!==cls)); if(safeClass===cls) setSelClass(classes.filter(c=>c!==cls)[0]??1); }
 
+  if(!currentUser) return (
+    <SchoolContext.Provider value={school}>
+      <LoginPage users={users} onLogin={handleLogin}/>
+    </SchoolContext.Provider>
+  );
+
   const shared = { students, records, selClass:safeClass, selSec:eSec };
   const showFilter = currentUser.role==="admin" && !["users","settings","classes"].includes(page);
 
@@ -1159,28 +1287,30 @@ export default function App(){
     students:  <StudentsTab {...shared} onAdd={addStudent} onRemove={removeStudent} user={currentUser}/>,
     classes:   <ManageClasses classes={classes} students={students} records={records} onAddClass={addClass} onRemoveClass={removeClass}/>,
     users:     <ManageUsers users={users} currentUser={currentUser} onUpdate={setUsers}/>,
-    settings:  <Settings currentUser={currentUser} users={users} onUpdate={u=>{ setUsers(u); setCurrentUser(u.find(x=>x.id===currentUser.id)??currentUser); }}/>,
+    settings:  <Settings currentUser={currentUser} users={users} onUpdate={u=>{ setUsers(u); setCurrentUser(u.find(x=>x.id===currentUser.id)??currentUser); }} school={school} onUpdateSchool={setSchool}/>,
   };
 
   return(
-    <div className="flex h-screen bg-[#eef2f7] overflow-hidden" style={{fontFamily:"'Poppins',sans-serif"}}>
-      {showAddModal&&<AddStudentModal onAdd={addStudent} onClose={()=>setShowAddModal(false)} defaultClass={safeClass} defaultSection={eSec} user={currentUser} classes={classes}/>}
-      <div className="w-52 shrink-0 shadow-xl"><Sidebar active={page} onNav={setPage} onLogout={()=>setCurrentUser(null)} user={currentUser}/></div>
-      <div className="flex-1 overflow-y-auto relative">
-        <div className="p-6 max-w-5xl">
-          {showFilter&&<ClassFilter selClass={safeClass} selSec={eSec} setClass={setSelClass} setSec={setSelSec} user={currentUser} classes={classes}/>}
-          {pages[page]}
+    <SchoolContext.Provider value={school}>
+      <div className="flex h-screen bg-[#eef2f7] overflow-hidden" style={{fontFamily:"'Poppins',sans-serif"}}>
+        {showAddModal&&<AddStudentModal onAdd={addStudent} onClose={()=>setShowAddModal(false)} defaultClass={safeClass} defaultSection={eSec} user={currentUser} classes={classes}/>}
+        <div className="w-52 shrink-0 shadow-xl"><Sidebar active={page} onNav={setPage} onLogout={()=>setCurrentUser(null)} user={currentUser}/></div>
+        <div className="flex-1 overflow-y-auto relative">
+          <div className="p-6 max-w-5xl">
+            {showFilter&&<ClassFilter selClass={safeClass} selSec={eSec} setClass={setSelClass} setSec={setSelSec} user={currentUser} classes={classes}/>}
+            {pages[page]}
+          </div>
+          {!["users","settings","classes"].includes(page)&&(
+            <motion.button onClick={()=>setShowAddModal(true)}
+              whileHover={{scale:1.06,boxShadow:`0 8px 30px ${school.primaryColor}44`}} whileTap={{scale:0.94}}
+              className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-semibold text-sm shadow-xl"
+              style={{background:`linear-gradient(135deg,${school.primaryColor},${school.accentColor})`,zIndex:40}}
+              initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}}>
+              <span className="text-lg font-bold leading-none">+</span> Add Student
+            </motion.button>
+          )}
         </div>
-        {!["users","settings","classes"].includes(page)&&(
-          <motion.button onClick={()=>setShowAddModal(true)}
-            whileHover={{scale:1.06,boxShadow:"0 8px 30px rgba(78,115,223,0.45)"}} whileTap={{scale:0.94}}
-            className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-semibold text-sm shadow-xl"
-            style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)",zIndex:40}}
-            initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}}>
-            <span className="text-lg font-bold leading-none">+</span> Add Student
-          </motion.button>
-        )}
       </div>
-    </div>
+    </SchoolContext.Provider>
   );
 }
