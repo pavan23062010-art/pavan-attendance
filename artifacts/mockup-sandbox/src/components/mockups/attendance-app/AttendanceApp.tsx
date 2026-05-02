@@ -52,7 +52,7 @@ function genName(seed: number){ return `${FIRST[seed%FIRST.length]} ${LAST[Math.
 
 function generateStudents(): Student[] {
   const out: Student[] = []; let gi = 0;
-  CLASSES.forEach(cls => SECTIONS.forEach(sec => {
+  DEFAULT_CLASSES.forEach(cls => SECTIONS.forEach(sec => {
     for(let i=0;i<5;i++){
       out.push({ id:`s${gi}`, name:genName(gi), rollNo:String(gi+1).padStart(3,"0"), class:cls, section:sec });
       gi++;
@@ -67,7 +67,7 @@ function deterministicPct(studentIdx: number, cls: number, mi: number){
 
 function generateDailyRecords(students: Student[]): MonthRecord[] {
   const out: MonthRecord[] = [];
-  CLASSES.forEach(cls => SECTIONS.forEach(sec => {
+  DEFAULT_CLASSES.forEach(cls => SECTIONS.forEach(sec => {
     const stu = students.filter(s => s.class===cls && s.section===sec);
     ACADEMIC_MONTHS.forEach((month, mi) => {
       const wd = WORKING_DAYS_PER_MONTH[mi];
@@ -188,8 +188,8 @@ function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: st
   </style>
 </head>
 <body>
-  <h1>🎓 SCHOOL ATTENDANCE REPORT</h1>
-  <h2>Class ${cls} – Section ${sec} &nbsp;|&nbsp; ${rec.month}</h2>
+  <h1>PAVAN GROUP OF SCHOOLS — VINUKONDA</h1>
+  <h2>Attendance Report &nbsp;|&nbsp; Class ${cls} – Section ${sec} &nbsp;|&nbsp; ${rec.month}</h2>
   <p class="meta">Academic Year 2026–2027 &nbsp;|&nbsp; Working Days: ${wd} &nbsp;|&nbsp; Total Students: ${clsStu.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString()}</p>
 
   <div class="summary">
@@ -232,6 +232,86 @@ function downloadDoc(students: Student[], rec: MonthRecord, cls: number, sec: st
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SCHOOL LOGO — boy operating a computer
+// ══════════════════════════════════════════════════════════════════════════════
+const SCHOOL_NAME    = "PAVAN GROUP OF SCHOOLS";
+const SCHOOL_SUBNAME = "Vinukonda";
+
+function SchoolLogo({ size = 96, glow = false }: { size?: number; glow?: boolean }){
+  return(
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"
+      style={glow ? { filter:"drop-shadow(0 0 18px #4e73dfaa) drop-shadow(0 0 40px #1cc88a55)" } : {}}>
+      {/* Background circle */}
+      <circle cx="60" cy="60" r="58" fill="url(#logoBg)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
+      <defs>
+        <radialGradient id="logoBg" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stopColor="#3a5fd9"/>
+          <stop offset="100%" stopColor="#1a3aaa"/>
+        </radialGradient>
+      </defs>
+
+      {/* ── DESK ── */}
+      <rect x="18" y="82" width="84" height="6" rx="3" fill="#f6c23e"/>
+      <rect x="25" y="88" width="6" height="18" rx="2" fill="#e0a800"/>
+      <rect x="89" y="88" width="6" height="18" rx="2" fill="#e0a800"/>
+
+      {/* ── MONITOR ── */}
+      <rect x="34" y="50" width="52" height="34" rx="4" fill="#0d1b3e" stroke="#4e73df" strokeWidth="1.5"/>
+      <rect x="37" y="53" width="46" height="27" rx="2" fill="#1cc88a" opacity="0.15"/>
+      {/* screen glow lines */}
+      <rect x="40" y="57" width="28" height="2" rx="1" fill="#1cc88a" opacity="0.7"/>
+      <rect x="40" y="62" width="20" height="2" rx="1" fill="#4e73df" opacity="0.7"/>
+      <rect x="40" y="67" width="24" height="2" rx="1" fill="#1cc88a" opacity="0.5"/>
+      <rect x="40" y="72" width="16" height="2" rx="1" fill="#4e73df" opacity="0.5"/>
+      {/* cursor blink */}
+      <rect x="73" y="57" width="2" height="8" rx="1" fill="#f6c23e" opacity="0.9"/>
+      {/* monitor stand */}
+      <rect x="57" y="84" width="6" height="4" rx="1" fill="#4e73df"/>
+      <rect x="51" y="86" width="18" height="3" rx="1.5" fill="#4e73df"/>
+
+      {/* ── KEYBOARD ── */}
+      <rect x="38" y="87" width="20" height="5" rx="2" fill="#2c3e6b"/>
+      <rect x="40" y="88.5" width="3" height="2" rx="0.5" fill="#4e73df" opacity="0.7"/>
+      <rect x="44.5" y="88.5" width="3" height="2" rx="0.5" fill="#4e73df" opacity="0.7"/>
+      <rect x="49" y="88.5" width="3" height="2" rx="0.5" fill="#4e73df" opacity="0.7"/>
+      <rect x="53.5" y="88.5" width="3" height="2" rx="0.5" fill="#4e73df" opacity="0.7"/>
+
+      {/* ── BOY ── */}
+      {/* head */}
+      <circle cx="79" cy="47" r="10" fill="#FDBCB4"/>
+      {/* hair */}
+      <path d="M70 45 Q70 34 79 34 Q88 34 88 45 Q85 38 79 38 Q73 38 70 45Z" fill="#4a2800"/>
+      {/* left ear */}
+      <ellipse cx="70" cy="47" rx="2" ry="2.5" fill="#FDBCB4"/>
+      {/* eyes */}
+      <ellipse cx="76" cy="46" rx="1.5" ry="1.8" fill="#2c1810"/>
+      <ellipse cx="82" cy="46" rx="1.5" ry="1.8" fill="#2c1810"/>
+      <circle cx="76.6" cy="45.5" r="0.5" fill="white"/>
+      <circle cx="82.6" cy="45.5" r="0.5" fill="white"/>
+      {/* smile */}
+      <path d="M75.5 50 Q79 53 82.5 50" stroke="#c0725a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+
+      {/* body / shirt */}
+      <path d="M70 56 Q65 58 63 70 L72 70 L72 62 L86 62 L86 70 L95 70 Q93 58 88 56 Q84 54 79 54 Q74 54 70 56Z" fill="#4e73df"/>
+      {/* collar */}
+      <path d="M76 54 L79 60 L82 54" stroke="white" strokeWidth="1" fill="none"/>
+
+      {/* left arm — reaching keyboard */}
+      <path d="M70 58 Q66 64 55 82" stroke="#4e73df" strokeWidth="6" strokeLinecap="round"/>
+      <ellipse cx="54" cy="83" rx="4" ry="3" fill="#FDBCB4" transform="rotate(-20,54,83)"/>
+
+      {/* right arm — reaching keyboard */}
+      <path d="M86 60 Q88 68 60 85" stroke="#4e73df" strokeWidth="6" strokeLinecap="round"/>
+      <ellipse cx="59" cy="86" rx="4" ry="3" fill="#FDBCB4" transform="rotate(-10,59,86)"/>
+
+      {/* legs / chair */}
+      <path d="M72 70 L70 85" stroke="#1a3aaa" strokeWidth="5" strokeLinecap="round"/>
+      <path d="M86 70 L88 85" stroke="#1a3aaa" strokeWidth="5" strokeLinecap="round"/>
+    </svg>
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -278,25 +358,34 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
         style={{background:"radial-gradient(circle,#1cc88a33 0%,transparent 70%)",bottom:"-5%",right:"5%"}}
         animate={{scale:[1,1.2,1],opacity:[0.4,0.7,0.4]}} transition={{duration:8,repeat:Infinity,delay:2}}/>
       {/* Left */}
-      <motion.div className="hidden md:flex flex-1 flex-col items-center justify-center px-14 relative z-10"
+      <motion.div className="hidden md:flex flex-1 flex-col items-center justify-center px-10 relative z-10"
         initial={{opacity:0,x:-60}} animate={{opacity:1,x:0}} transition={{duration:0.9}}>
-        <motion.div className="w-28 h-28 rounded-3xl flex items-center justify-center text-5xl shadow-2xl mb-8"
-          style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)",boxShadow:"0 0 60px #4e73df66,0 0 120px #1cc88a33"}}
+        {/* Logo */}
+        <motion.div className="mb-6"
           initial={{scale:0,rotate:-180}} animate={{scale:1,rotate:0}}
-          transition={{duration:1,delay:0.2,type:"spring",stiffness:120}}>🎓</motion.div>
-        <motion.div className="text-center" initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{delay:0.5}}>
-          <p className="text-white/50 text-sm font-medium tracking-[0.3em] uppercase mb-2">Welcome to</p>
-          <h1 className="text-4xl font-black text-white mb-1" style={{textShadow:"0 0 40px #4e73df99"}}>SCHOOL</h1>
-          <h1 className="text-4xl font-black mb-4" style={{background:"linear-gradient(90deg,#4e73df,#1cc88a)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>ATTENDANCE</h1>
-          <p className="text-white/40 text-sm"><TypewriterText text="Academic Year 2026 – 2027"/></p>
+          transition={{duration:1,delay:0.2,type:"spring",stiffness:120}}>
+          <SchoolLogo size={120} glow={true}/>
         </motion.div>
-        <motion.div className="flex gap-4 mt-10" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:1}}>
-          {[{icon:"🏫",label:"Classes",value:"10"},{icon:"📚",label:"Sections",value:"A,B,C"},{icon:"📋",label:"Daily",value:"Track"}].map(s=>(
+        <motion.div className="text-center" initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{delay:0.5}}>
+          <p className="text-white/50 text-xs font-medium tracking-[0.25em] uppercase mb-2">Welcome to</p>
+          <h1 className="text-2xl font-black text-white leading-tight mb-0.5" style={{textShadow:"0 0 40px #4e73df99"}}>
+            PAVAN GROUP OF
+          </h1>
+          <h1 className="text-2xl font-black mb-1" style={{background:"linear-gradient(90deg,#f6c23e,#1cc88a)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
+            SCHOOLS
+          </h1>
+          <p className="text-white/60 text-sm font-semibold tracking-widest uppercase mb-1">Vinukonda</p>
+          <div className="w-16 h-0.5 mx-auto mb-3 rounded-full" style={{background:"linear-gradient(90deg,#4e73df,#1cc88a)"}}/>
+          <p className="text-white/35 text-xs">Attendance Management System</p>
+          <p className="text-white/40 text-xs mt-1"><TypewriterText text="Academic Year 2026 – 2027"/></p>
+        </motion.div>
+        <motion.div className="flex gap-3 mt-8" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:1}}>
+          {[{icon:"🏫",label:"Classes",value:"1–10"},{icon:"📚",label:"Sections",value:"A,B,C"},{icon:"📋",label:"Tracking",value:"Daily"}].map(s=>(
             <motion.div key={s.label} whileHover={{scale:1.05,y:-4}}
-              className="flex flex-col items-center px-5 py-3 rounded-2xl text-center"
+              className="flex flex-col items-center px-4 py-3 rounded-2xl text-center"
               style={{background:"rgba(255,255,255,0.07)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.1)"}}>
               <span className="text-xl mb-1">{s.icon}</span>
-              <span className="text-white font-bold">{s.value}</span>
+              <span className="text-white font-bold text-sm">{s.value}</span>
               <span className="text-white/40 text-xs">{s.label}</span>
             </motion.div>
           ))}
@@ -312,7 +401,10 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
         initial={{opacity:0,x:60}} animate={{opacity:1,x:0}} transition={{duration:0.9}}>
         <motion.div className="w-full max-w-sm" initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} transition={{delay:0.3}}>
           <div className="rounded-3xl p-8" style={{background:"rgba(255,255,255,0.06)",backdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.12)",boxShadow:"0 24px 80px rgba(0,0,0,0.5)"}}>
-            <div className="mb-7"><h2 className="text-white text-2xl font-bold">Sign In</h2><p className="text-white/40 text-sm mt-1">Daily attendance portal</p></div>
+            <div className="mb-7">
+              <h2 className="text-white text-2xl font-bold">Sign In</h2>
+              <p className="text-white/40 text-sm mt-1">Pavan Group of Schools · Vinukonda</p>
+            </div>
             <form onSubmit={handleLogin} className="space-y-5">
               {[{key:"user",label:"Username",icon:"👤",value:username,set:setUsername,type:"text",ph:"Enter username"},
                 {key:"pass",label:"Password",icon:"🔒",value:pass,set:setPass,type:showPass?"text":"password",ph:"Enter password"}].map(f=>(
@@ -357,8 +449,13 @@ function Sidebar({ active,onNav,onLogout,user }: { active:string; onNav:(id:stri
   return(
     <div className="flex flex-col h-full py-4 px-3" style={{background:"linear-gradient(180deg,#4e73df 0%,#224abe 100%)"}}>
       <div className="text-center mb-4 px-2">
-        <div className="text-2xl font-bold text-white mb-1">🎓</div>
-        <p className="text-white/90 text-xs font-semibold">School Attendance</p>
+        {/* Logo + school name */}
+        <div className="flex justify-center mb-2">
+          <SchoolLogo size={52}/>
+        </div>
+        <p className="text-white font-black text-xs leading-tight">PAVAN GROUP</p>
+        <p className="text-white font-black text-xs leading-tight">OF SCHOOLS</p>
+        <p className="text-white/60 text-[10px] tracking-widest uppercase">Vinukonda</p>
         <div className="mt-3 px-3 py-2 rounded-xl" style={{background:"rgba(255,255,255,0.12)"}}>
           <p className="text-white text-xs font-semibold truncate">{user.displayName}</p>
           <p className="text-white/50 text-xs capitalize">{user.role}{user.role==="teacher"&&user.assignedClass?` · Cl ${user.assignedClass}${user.assignedSection}`:""}</p>
@@ -1096,7 +1193,7 @@ function ManageUsers({ users,currentUser,onUpdate }: { users:UserAccount[]; curr
           {form.role==="teacher"&&<>
             <div><label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Assigned Class</label>
               <select value={form.assignedClass} onChange={e=>setForm(f=>({...f,assignedClass:Number(e.target.value)}))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                {CLASSES.map(c=><option key={c} value={c}>Class {c}</option>)}
+                {DEFAULT_CLASSES.map(c=><option key={c} value={c}>Class {c}</option>)}
               </select>
             </div>
             <div><label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Section</label>
