@@ -216,6 +216,20 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* PAVAN AI Chat */}
+        <TouchableOpacity onPress={() => router.push("/chat")} style={styles.pavanCard}>
+          <LinearGradient colors={["#4e73df", "#1cc88a"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.pavanGrad}>
+            <View style={styles.pavanAvatar}>
+              <Text style={styles.pavanAvatarText}>P</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pavanTitle}>Chat with PAVAN</Text>
+              <Text style={styles.pavanSub}>Your AI attendance assistant</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+          </LinearGradient>
+        </TouchableOpacity>
+
         <SectionHeader title="ACCOUNT" />
         <SettingRow icon="lock" label="Change Password" onPress={() => setShowChangePass(v => !v)} />
         {showChangePass && <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}><ChangePasswordSheet visible={showChangePass} onClose={() => setShowChangePass(false)} /></View>}
@@ -283,4 +297,10 @@ const styles = StyleSheet.create({
   previewAY: { color: "rgba(255,255,255,0.65)", fontSize: 11 },
   colorRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
   colorDot: { width: 32, height: 32, borderRadius: 16 },
+  pavanCard: { marginHorizontal: 16, marginTop: 16, marginBottom: 4, borderRadius: 20, overflow: "hidden", shadowColor: "#4e73df", shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
+  pavanGrad: { flexDirection: "row", alignItems: "center", padding: 18, gap: 14 },
+  pavanAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
+  pavanAvatarText: { color: "#fff", fontSize: 20, fontWeight: "900" },
+  pavanTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  pavanSub: { color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 },
 });
