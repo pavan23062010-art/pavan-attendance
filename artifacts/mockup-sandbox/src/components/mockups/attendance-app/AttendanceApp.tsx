@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, RadarChart, Radar,
@@ -83,61 +84,331 @@ function avatar(name: string, bg?: string) {
   );
 }
 
+// ─── Floating particle ────────────────────────────────────────────────────────
+function Particle({ index }: { index: number }) {
+  const size = 6 + (index % 4) * 4;
+  const startX = (index * 137.5) % 100;
+  const duration = 8 + (index % 5) * 2;
+  const delay = (index * 0.7) % 6;
+  const colors = ["#4e73df33","#1cc88a33","#f6c23e33","#e74a3b22","#36b9cc33"];
+  return (
+    <motion.div
+      className="absolute rounded-full pointer-events-none"
+      style={{ width: size, height: size, left: `${startX}%`, background: colors[index % colors.length] }}
+      initial={{ y: "110vh", opacity: 0 }}
+      animate={{ y: "-10vh", opacity: [0, 0.8, 0.8, 0] }}
+      transition={{ duration, delay, repeat: Infinity, ease: "linear" }}
+    />
+  );
+}
+
+// ─── Animated typing text ─────────────────────────────────────────────────────
+function TypewriterText({ text, className }: { text: string; className?: string }) {
+  const [displayed, setDisplayed] = useState("");
+  const idx = useRef(0);
+  useEffect(() => {
+    idx.current = 0;
+    setDisplayed("");
+    const iv = setInterval(() => {
+      if (idx.current < text.length) {
+        setDisplayed(text.slice(0, idx.current + 1));
+        idx.current++;
+      } else {
+        clearInterval(iv);
+      }
+    }, 60);
+    return () => clearInterval(iv);
+  }, [text]);
+  return <span className={className}>{displayed}<span className="animate-pulse">|</span></span>;
+}
+
 // ─── Login page ───────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }: { onLogin: () => void }) {
-  const [user, setUser] = useState("admin");
+  const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (user === "admin" && pass === "1234") {
-      onLogin();
-    } else {
-      setErr("Invalid credentials. Try admin / 1234");
-    }
+    setErr("");
+    setLoading(true);
+    setTimeout(() => {
+      if (user === "admin" && pass === "1234") {
+        onLogin();
+      } else {
+        setLoading(false);
+        setErr("Invalid credentials. Use admin / 1234");
+      }
+    }, 1200);
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#eef2f7]"
-      style={{ fontFamily: "'Poppins', sans-serif" }}>
-      <div className="w-full max-w-sm">
-        {/* Logo card */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white text-3xl mb-3 shadow-lg"
-            style={{ background: "linear-gradient(135deg,#4e73df,#1cc88a)" }}>
-            📊
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800">Smart Attendance</h1>
-          <p className="text-sm text-gray-500 mt-1">Academic Year 2026–2027</p>
-        </div>
+  const particles = Array.from({ length: 18 }, (_, i) => i);
 
-        <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-md p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Username</label>
-            <input
-              value={user} onChange={e => setUser(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"
-              placeholder="admin"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Password</label>
-            <input
-              type="password" value={pass} onChange={e => setPass(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"
-              placeholder="••••••"
-            />
-          </div>
-          {err && <p className="text-xs text-red-500">{err}</p>}
-          <button type="submit"
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm"
-            style={{ background: "linear-gradient(135deg,#4e73df,#1cc88a)" }}>
-            Sign In
-          </button>
-          <p className="text-center text-xs text-gray-400">Use: admin / 1234</p>
-        </form>
+  return (
+    <div
+      className="min-h-screen flex overflow-hidden relative"
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
+      }}
+    >
+      {/* Animated particles */}
+      <div className="absolute inset-0 overflow-hidden">
+        {particles.map(i => <Particle key={i} index={i} />)}
       </div>
+
+      {/* Glowing orbs */}
+      <motion.div
+        className="absolute w-96 h-96 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, #4e73df44 0%, transparent 70%)", top: "-10%", left: "-5%" }}
+        animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute w-80 h-80 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, #1cc88a33 0%, transparent 70%)", bottom: "-5%", right: "5%" }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
+      {/* Left panel */}
+      <motion.div
+        className="hidden md:flex flex-1 flex-col items-center justify-center px-16 relative z-10"
+        initial={{ opacity: 0, x: -60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
+      >
+        {/* School icon */}
+        <motion.div
+          className="mb-8"
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ duration: 1, delay: 0.2, type: "spring", stiffness: 120 }}
+        >
+          <div
+            className="w-28 h-28 rounded-3xl flex items-center justify-center text-5xl shadow-2xl"
+            style={{
+              background: "linear-gradient(135deg,#4e73df,#1cc88a)",
+              boxShadow: "0 0 60px #4e73df66, 0 0 120px #1cc88a33",
+            }}
+          >
+            🎓
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+        >
+          <p className="text-white/50 text-sm font-medium tracking-[0.3em] uppercase mb-3">Welcome to</p>
+          <h1
+            className="text-4xl font-black text-white mb-3 leading-tight"
+            style={{ textShadow: "0 0 40px #4e73df99" }}
+          >
+            SCHOOL
+          </h1>
+          <h1
+            className="text-4xl font-black mb-4 leading-tight"
+            style={{
+              background: "linear-gradient(90deg, #4e73df, #1cc88a)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            ATTENDANCE
+          </h1>
+          <p className="text-white/40 text-sm">
+            <TypewriterText text="Academic Year 2026 – 2027" />
+          </p>
+        </motion.div>
+
+        {/* Stat pills */}
+        <motion.div
+          className="flex gap-4 mt-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1 }}
+        >
+          {[
+            { icon: "👨‍🎓", label: "Students", value: "8+" },
+            { icon: "📅", label: "Months", value: "12" },
+            { icon: "📊", label: "Reports", value: "Live" },
+          ].map(s => (
+            <motion.div
+              key={s.label}
+              whileHover={{ scale: 1.05, y: -4 }}
+              className="flex flex-col items-center px-5 py-3 rounded-2xl text-center"
+              style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              <span className="text-xl mb-1">{s.icon}</span>
+              <span className="text-white font-bold text-lg">{s.value}</span>
+              <span className="text-white/40 text-xs">{s.label}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Made by */}
+        <motion.p
+          className="absolute bottom-6 text-white/25 text-xs tracking-widest uppercase"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+        >
+          Made by <span className="text-white/50 font-semibold">Pavan</span>
+        </motion.p>
+      </motion.div>
+
+      {/* Divider */}
+      <div className="hidden md:block w-px self-stretch my-16" style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.15), transparent)" }} />
+
+      {/* Right panel — login form */}
+      <motion.div
+        className="flex-1 flex flex-col items-center justify-center px-10 relative z-10"
+        initial={{ opacity: 0, x: 60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
+      >
+        <motion.div
+          className="w-full max-w-sm"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          {/* Card */}
+          <div
+            className="rounded-3xl p-8"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(24px)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div className="mb-7">
+              <h2 className="text-white text-2xl font-bold">Sign In</h2>
+              <p className="text-white/40 text-sm mt-1">Access your attendance portal</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              {/* Username */}
+              <motion.div animate={{ y: focusedField === "user" ? -2 : 0 }} transition={{ duration: 0.2 }}>
+                <label className="block text-xs font-semibold text-white/50 mb-2 tracking-widest uppercase">Username</label>
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.07)",
+                    border: `1.5px solid ${focusedField === "user" ? "#4e73df" : "rgba(255,255,255,0.1)"}`,
+                    boxShadow: focusedField === "user" ? "0 0 0 3px #4e73df22" : "none",
+                  }}
+                >
+                  <span className="text-white/40 text-sm">👤</span>
+                  <input
+                    value={user}
+                    onChange={e => setUser(e.target.value)}
+                    onFocus={() => setFocusedField("user")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="Enter username"
+                    className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none"
+                  />
+                </div>
+              </motion.div>
+
+              {/* Password */}
+              <motion.div animate={{ y: focusedField === "pass" ? -2 : 0 }} transition={{ duration: 0.2 }}>
+                <label className="block text-xs font-semibold text-white/50 mb-2 tracking-widest uppercase">Password</label>
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.07)",
+                    border: `1.5px solid ${focusedField === "pass" ? "#1cc88a" : "rgba(255,255,255,0.1)"}`,
+                    boxShadow: focusedField === "pass" ? "0 0 0 3px #1cc88a22" : "none",
+                  }}
+                >
+                  <span className="text-white/40 text-sm">🔒</span>
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={pass}
+                    onChange={e => setPass(e.target.value)}
+                    onFocus={() => setFocusedField("pass")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="Enter password"
+                    className="flex-1 bg-transparent text-white text-sm placeholder-white/25 focus:outline-none"
+                  />
+                  <button type="button" onClick={() => setShowPass(v => !v)} className="text-white/30 hover:text-white/60 transition-colors text-sm">
+                    {showPass ? "🙈" : "👁️"}
+                  </button>
+                </div>
+              </motion.div>
+
+              {/* Error */}
+              <AnimatePresence>
+                {err && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs"
+                    style={{ background: "#e74a3b22", border: "1px solid #e74a3b44", color: "#ff6b6b" }}
+                  >
+                    <span>⚠️</span> {err}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit */}
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.02, boxShadow: "0 0 30px #4e73df66" }}
+                whileTap={{ scale: 0.97 }}
+                disabled={loading}
+                className="w-full py-3.5 rounded-2xl text-white font-bold text-sm relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg,#4e73df,#1cc88a)" }}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                    />
+                    Authenticating...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    Sign In <span>→</span>
+                  </span>
+                )}
+                {/* Shimmer */}
+                <motion.div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)" }}
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                />
+              </motion.button>
+
+              <p className="text-center text-white/20 text-xs mt-2">
+                Demo: <span className="text-white/40 font-mono">admin</span> / <span className="text-white/40 font-mono">1234</span>
+              </p>
+            </form>
+          </div>
+
+          {/* Made by — mobile */}
+          <motion.p
+            className="text-center text-white/20 text-xs mt-6 tracking-widest uppercase md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+          >
+            Made by <span className="text-white/40 font-semibold">Pavan</span>
+          </motion.p>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
