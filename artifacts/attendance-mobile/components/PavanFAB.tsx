@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -12,23 +12,48 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ACADEMIC_MONTHS, useApp } from "@/context/AppContext";
+
+const getInitialMonthIdx = (): number => {
+  const now = new Date();
+  const MNAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const target = `${now.getFullYear()}-${MNAMES[now.getMonth()]}`;
+  const idx = ACADEMIC_MONTHS.indexOf(target);
+  if (idx === -1) return now.getFullYear() < 2026 ? 0 : ACADEMIC_MONTHS.length - 1;
+  return idx;
+};
+
+const TODAY_DAY = String(new Date().getDate());
+const TODAY_MONTH = ACADEMIC_MONTHS[getInitialMonthIdx()];
+
 export default function PavanFAB() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { students, records, currentUser } = useApp();
   const bottomPad = Platform.OS === "web" ? 84 : 60;
   const bottom = bottomPad + insets.bottom + 12;
 
-  // Pulse scale animation
+  // Compute how many students are unmarked for today
+  const unmarkedCount = useMemo(() => {
+    if (!currentUser) return 0;
+    const relevantStudents = currentUser.role === "admin"
+      ? students
+      : students.filter(s => s.class === currentUser.assignedClass && s.section === currentUser.assignedSection);
+
+    return relevantStudents.filter(s => {
+      const rec = records.find(r => r.class === s.class && r.section === s.section && r.month === TODAY_MONTH);
+      return !rec || rec.daily[s.id]?.[TODAY_DAY] === undefined;
+    }).length;
+  }, [students, records, currentUser]);
+
+  // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  // Glow opacity animation
   const glowAnim = useRef(new Animated.Value(0.4)).current;
-  // Speech bubble fade/slide animation
   const bubbleFade = useRef(new Animated.Value(0)).current;
   const bubbleSlide = useRef(new Animated.Value(12)).current;
   const [bubbleVisible, setBubbleVisible] = useState(true);
 
   useEffect(() => {
-    // Continuous pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -36,7 +61,6 @@ export default function PavanFAB() {
       ])
     ).start();
 
-    // Glow pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
@@ -44,7 +68,6 @@ export default function PavanFAB() {
       ])
     ).start();
 
-    // Bubble appear then auto-hide after 4s
     Animated.parallel([
       Animated.timing(bubbleFade, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(bubbleSlide, { toValue: 0, duration: 400, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
@@ -94,6 +117,13 @@ export default function PavanFAB() {
           </LinearGradient>
         </Animated.View>
       </TouchableOpacity>
+
+      {/* Notification badge */}
+      {unmarkedCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{unmarkedCount > 99 ? "99+" : String(unmarkedCount)}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -163,5 +193,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "900",
     letterSpacing: -0.5,
+  },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#e74a3b",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "900",
   },
 });
