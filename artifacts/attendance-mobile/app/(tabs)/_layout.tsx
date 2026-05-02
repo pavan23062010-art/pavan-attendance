@@ -7,6 +7,7 @@ import { SymbolView } from "expo-symbols";
 import React, { useEffect } from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
+import PavanFAB from "@/components/PavanFAB";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -51,6 +52,7 @@ function ClassicTabLayout() {
   }, [currentUser]);
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
@@ -114,6 +116,8 @@ function ClassicTabLayout() {
         }}
       />
     </Tabs>
+    <PavanFAB />
+    </View>
   );
 }
 

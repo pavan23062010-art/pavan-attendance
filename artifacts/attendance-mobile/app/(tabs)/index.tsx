@@ -6,6 +6,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ACADEMIC_MONTHS, MONTH_LABELS, SECTIONS, gc, pct, presentCount, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
+const getGreeting = (): string => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+};
+
 function ClassPicker({ selClass, selSec, setClass, setSec, classes, locked }: {
   selClass: number; selSec: string; setClass: (c: number) => void; setSec: (s: string) => void;
   classes: number[]; locked: boolean;
@@ -99,7 +106,7 @@ export default function DashboardScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <LinearGradient colors={[school.primaryColor, "#1a3aaa"]} style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Text style={styles.headerGreeting}>Hi, {currentUser?.displayName ?? "there"} 👋</Text>
+        <Text style={styles.headerGreeting}>{getGreeting()}, {currentUser?.displayName ?? "there"} 👋</Text>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <Text style={styles.headerSub}>{school.nameLine1} {school.nameLine2} · AY {school.academicYear}</Text>
       </LinearGradient>
