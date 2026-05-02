@@ -25,3 +25,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## GitHub Push (Pending Setup)
+
+The user wants to push this project to GitHub. To connect GitHub in future sessions:
+- **Option A (preferred):** Use the Replit GitHub integration — go to Tools → Integrations → GitHub → Connect
+- **Option B (manual):** Ask user for:
+  1. A new empty GitHub repo URL (e.g. `https://github.com/pavan23062010-art/pavan-attendance`)
+  2. A GitHub Personal Access Token (classic) with `repo` scope (starts with `ghp_`)
+  Then run:
+  ```bash
+  git remote add origin https://<TOKEN>@github.com/pavan23062010-art/<REPO>.git
+  git push -u origin main
+  ```
