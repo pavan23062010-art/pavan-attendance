@@ -17,6 +17,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useRouter } from "expo-router";
+
 import { SECTIONS, Student, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -127,6 +129,7 @@ export default function StudentsScreen() {
   const { students, currentUser, classes, removeStudent, school } = useApp();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 : 60;
 
@@ -233,6 +236,10 @@ export default function StudentsScreen() {
               )}
             </View>
             <View style={styles.actionBtns}>
+              <TouchableOpacity onPress={() => router.push(`/student/${item.id}` as any)}
+                style={[styles.actionBtn, { backgroundColor: colors.primary + "20" }]}>
+                <Feather name="bar-chart-2" size={15} color={colors.primary} />
+              </TouchableOpacity>
               {item.parentMobile && (
                 <>
                   <TouchableOpacity onPress={() => handleSMS(item.parentMobile!, item.name)} style={[styles.actionBtn, { backgroundColor: colors.secondary + "20" }]}>

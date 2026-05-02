@@ -1,4 +1,4 @@
-import { MonthRecord, SchoolInfo, Student, presentCount, pct } from "@/context/AppContext";
+import { ACADEMIC_MONTHS, MonthRecord, SchoolInfo, Student, presentCount, pct } from "@/context/AppContext";
 
 export const MONTH_LABELS_FULL = [
   "July","August","September","October","November","December",
@@ -360,6 +360,185 @@ export function buildSchoolSummaryHTML(
   <div class="footer">
     <span>Attendance report generated for AY ${school.academicYear} · All data from PAVAN Attendance App</span>
     <span>${school.nameLine1} ${school.nameLine2}, ${school.location} &nbsp;·&nbsp; Made by ${school.madeBy}</span>
+  </div>
+</body>
+</html>`;
+}
+
+// ─── Individual Student Report Card ──────────────────────────────────────────
+export function buildStudentReportHTML(
+  school: SchoolInfo,
+  student: Student,
+  stuRecs: MonthRecord[],
+  studentId: string,
+): string {
+  const generated = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  const DAYS_IN_MONTH = [31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30];
+  const MONTH_LABELS_LOCAL = ["July","August","September","October","November","December","January","February","March","April","May","June"];
+
+  let totalPresent = 0, totalWD = 0;
+
+  const monthRows = ACADEMIC_MONTHS.map((month, mi) => {
+    const rec = stuRecs.find(r => r.month === month);
+    const wd = rec?.workingDays ?? DAYS_IN_MONTH[mi];
+    const p = rec ? presentCount(rec, studentId) : 0;
+    const a = rec ? Object.values(rec.daily[studentId] ?? {}).filter(v => v === "A").length : 0;
+    const u = wd - p - a;
+    const pc = pct(p, wd);
+    totalPresent += p;
+    totalWD += wd;
+
+    const color = pc >= 85 ? "#16a34a" : pc >= 75 ? "#b45309" : "#dc2626";
+    const bg = mi % 2 === 0 ? "#ffffff" : "#f8fafc";
+
+    // Build day cells for this month
+    const days = Array.from({ length: wd }, (_, d) => {
+      const dayStatus = rec?.daily[studentId]?.[String(d + 1)];
+      const bgCol = dayStatus === "P" ? "#dcfce7" : dayStatus === "A" ? "#fee2e2" : "#f1f5f9";
+      const textCol = dayStatus === "P" ? "#16a34a" : dayStatus === "A" ? "#dc2626" : "#94a3b8";
+      return `<span style="display:inline-block;width:22px;height:22px;border-radius:4px;background:${bgCol};color:${textCol};font-size:8px;font-weight:700;text-align:center;line-height:22px;margin:1px;">${d + 1}</span>`;
+    }).join("");
+
+    return `
+      <tr style="background:${bg};">
+        <td style="font-weight:700;padding:8px 10px;">${MONTH_LABELS_LOCAL[mi]}</td>
+        <td style="text-align:center;font-weight:700;">${wd}</td>
+        <td style="text-align:center;font-weight:800;color:#16a34a;">${p}</td>
+        <td style="text-align:center;font-weight:800;color:#dc2626;">${a}</td>
+        <td style="text-align:center;color:#64748b;">${u > 0 ? u : "—"}</td>
+        <td style="text-align:center;font-weight:900;color:${color};font-size:13px;">${wd > 0 ? `${pc}%` : "—"}</td>
+        <td style="padding:4px 8px;font-size:8px;">${days}</td>
+      </tr>`;
+  }).join("");
+
+  const overall = pct(totalPresent, totalWD);
+  const totalAbsent = stuRecs.reduce((a, r) => a + Object.values(r.daily[studentId] ?? {}).filter(v => v === "A").length, 0);
+  const overallColor = overall >= 85 ? "#16a34a" : overall >= 75 ? "#b45309" : "#dc2626";
+  const statusLabel = overall >= 85 ? "REGULAR" : overall >= 75 ? "BORDERLINE" : "IRREGULAR (AT RISK)";
+  const statusBg = overall >= 85 ? "#dcfce7" : overall >= 75 ? "#fef3c7" : "#fee2e2";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Attendance Report Card – ${student.name}</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1e293b; background: #fff; }
+  .header { background: linear-gradient(135deg, ${school.primaryColor}, #1a3aaa); padding: 18px 22px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .school-name h1 { color: #fff; font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+  .school-name h2 { color: #fff; font-size: 13px; font-weight: 800; margin-top: 2px; }
+  .school-name p { color: rgba(255,255,255,0.65); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+  .report-label { text-align: right; }
+  .report-label h3 { color: #fff; font-size: 14px; font-weight: 900; }
+  .report-label p { color: rgba(255,255,255,0.7); font-size: 10px; margin-top: 3px; }
+  .student-card { display: flex; gap: 16px; align-items: stretch; margin-bottom: 16px; }
+  .stu-info { flex: 2; background: #f8fafc; border-radius: 10px; padding: 14px 16px; border-left: 5px solid ${school.primaryColor}; }
+  .stu-info h2 { font-size: 18px; font-weight: 900; color: #1e293b; }
+  .stu-info p { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .stu-stats { flex: 1.2; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { border-radius: 8px; padding: 10px; text-align: center; }
+  .stat .val { font-size: 20px; font-weight: 900; }
+  .stat .lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+  .status-banner { padding: 10px 16px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 900; letter-spacing: 1px; margin-bottom: 16px; background: ${statusBg}; color: ${overallColor}; }
+  .progress-outer { height: 10px; background: #e2e8f0; border-radius: 5px; margin: 8px 0 4px; overflow: hidden; }
+  .progress-inner { height: 10px; border-radius: 5px; background: ${overallColor}; width: ${overall}%; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  thead tr { background: ${school.primaryColor}; color: #fff; }
+  thead th { padding: 8px 10px; text-align: center; font-size: 10px; font-weight: 700; }
+  thead th:first-child { text-align: left; }
+  thead th:last-child { text-align: left; }
+  .total-row td { background: #f0f9ff; font-weight: 900; color: #1e40af; padding: 10px 10px; border-top: 2px solid ${school.primaryColor}; text-align: center; }
+  .total-row td:first-child { text-align: left; }
+  .footer { margin-top: 14px; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 800; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="school-name">
+      <h1>${school.nameLine1}</h1>
+      <h2>${school.nameLine2}</h2>
+      <p>${school.location} &nbsp;·&nbsp; AY ${school.academicYear}</p>
+    </div>
+    <div class="report-label">
+      <h3>ATTENDANCE REPORT CARD</h3>
+      <p>Individual Student Record</p>
+      <p style="margin-top:8px;font-size:9px;opacity:0.6;">Generated: ${generated}</p>
+    </div>
+  </div>
+
+  <div class="student-card">
+    <div class="stu-info">
+      <h2>${student.name}</h2>
+      <p>Roll Number: <strong>${student.rollNo}</strong> &nbsp;·&nbsp; Class <strong>${student.class} – ${student.section}</strong></p>
+      ${student.parentMobile ? `<p style="margin-top:6px;">Parent Mobile: <strong>+91 ${student.parentMobile}</strong></p>` : ""}
+      <div class="progress-outer"><div class="progress-inner"></div></div>
+      <p style="font-size:10px;color:${overallColor};font-weight:700;">Overall Attendance: ${overall}% &nbsp;·&nbsp; ${totalPresent} days present out of ${totalWD} working days</p>
+    </div>
+    <div class="stu-stats">
+      <div class="stat" style="background:#dcfce7;">
+        <div class="val" style="color:#16a34a;">${totalPresent}</div>
+        <div class="lbl" style="color:#16a34a;">Present</div>
+      </div>
+      <div class="stat" style="background:#fee2e2;">
+        <div class="val" style="color:#dc2626;">${totalAbsent}</div>
+        <div class="lbl" style="color:#dc2626;">Absent</div>
+      </div>
+      <div class="stat" style="background:#eff6ff;">
+        <div class="val" style="color:#3b82f6;">${totalWD}</div>
+        <div class="lbl" style="color:#3b82f6;">Working Days</div>
+      </div>
+      <div class="stat" style="background:${statusBg};">
+        <div class="val" style="color:${overallColor};font-size:16px;">${overall}%</div>
+        <div class="lbl" style="color:${overallColor};">Average</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-banner">
+    ATTENDANCE STATUS: ${statusLabel}
+    &nbsp;&nbsp;${overall >= 75 ? "✓ Eligible for Exams" : "✗ Below Required 75% Threshold"}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left;">Month</th>
+        <th>Working Days</th>
+        <th>Present</th>
+        <th>Absent</th>
+        <th>Unmarked</th>
+        <th>Attendance %</th>
+        <th style="text-align:left;">Day-by-Day Calendar</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${monthRows}
+      <tr class="total-row">
+        <td>FULL YEAR TOTAL</td>
+        <td>${totalWD}</td>
+        <td style="color:#16a34a;">${totalPresent}</td>
+        <td style="color:#dc2626;">${totalAbsent}</td>
+        <td>—</td>
+        <td style="color:${overallColor};font-size:14px;">${overall}%</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>
+      <span class="badge" style="background:#dcfce7;color:#16a34a;">Green ≥85%</span>&nbsp;
+      <span class="badge" style="background:#fef3c7;color:#b45309;">Amber 75–84%</span>&nbsp;
+      <span class="badge" style="background:#fee2e2;color:#dc2626;">Red &lt;75%</span>
+    </span>
+    <span>${school.nameLine1} ${school.nameLine2} · Made by ${school.madeBy}</span>
   </div>
 </body>
 </html>`;
