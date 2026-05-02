@@ -1,11 +1,16 @@
+import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import React, { useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, Path, Polygon, RadialGradient, Rect, Stop } from "react-native-svg";
 
 import { ACADEMIC_MONTHS, MONTH_LABELS, SECTIONS, gc, pct, presentCount, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { buildClassReportHTML, buildSchoolSummaryHTML } from "@/utils/pdfReport";
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 const getGreeting = (): string => {
@@ -321,6 +326,115 @@ function SchoolYearSummary({ students, records, school }: { students: any[]; rec
   );
 }
 
+// ─── Admin-only: Export PDF Panel ────────────────────────────────────────────
+function ExportPDFPanel({ students, records, classes, school }: { students: any[]; records: any[]; classes: number[]; school: any }) {
+  const colors = useColors();
+  const [exportType, setExportType] = useState<"class" | "school">("class");
+  const [selClass, setSelClass] = useState<number>(classes[0] ?? 1);
+  const [selSec, setSelSec] = useState("A");
+  const [loading, setLoading] = useState(false);
+
+  const handleExport = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoading(true);
+    try {
+      const html = exportType === "class"
+        ? buildClassReportHTML(school, selClass, selSec, students, records)
+        : buildSchoolSummaryHTML(school, students, records, classes);
+
+      if (Platform.OS === "web") {
+        const w = window.open("", "_blank");
+        if (w) { w.document.write(html); w.document.close(); w.print(); }
+        else Alert.alert("Blocked", "Please allow pop-ups and try again.");
+        setLoading(false);
+        return;
+      }
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { UTI: ".pdf", mimeType: "application/pdf" });
+      } else {
+        await Print.printAsync({ uri });
+      }
+    } catch (e: any) {
+      Alert.alert("Export Failed", e?.message ?? "Could not generate PDF.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.card }]}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 8 }}>
+        <Feather name="file-text" size={16} color={colors.primary} />
+        <Text style={[styles.cardTitle, { color: colors.foreground, marginBottom: 0 }]}>Export PDF Report</Text>
+      </View>
+
+      {/* Report type toggle */}
+      <View style={[styles.exportToggle, { backgroundColor: colors.muted }]}>
+        <TouchableOpacity onPress={() => setExportType("class")}
+          style={[styles.exportToggleOpt, exportType === "class" && { backgroundColor: colors.primary }]}>
+          <Feather name="users" size={13} color={exportType === "class" ? "#fff" : colors.mutedForeground} />
+          <Text style={[styles.exportToggleText, { color: exportType === "class" ? "#fff" : colors.mutedForeground }]}>Class Report</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setExportType("school")}
+          style={[styles.exportToggleOpt, exportType === "school" && { backgroundColor: colors.secondary }]}>
+          <Feather name="bar-chart-2" size={13} color={exportType === "school" ? "#fff" : colors.mutedForeground} />
+          <Text style={[styles.exportToggleText, { color: exportType === "school" ? "#fff" : colors.mutedForeground }]}>School Summary</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Class + Section picker (only for class report) */}
+      {exportType === "class" && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={[styles.exportPickerLabel, { color: colors.mutedForeground }]}>CLASS</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+            {classes.map(c => (
+              <TouchableOpacity key={c} onPress={() => setSelClass(c)}
+                style={[styles.pill, { backgroundColor: selClass === c ? colors.primary : colors.muted, marginRight: 6 }]}>
+                <Text style={[styles.pillText, { color: selClass === c ? "#fff" : colors.mutedForeground }]}>{c}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={[styles.exportPickerLabel, { color: colors.mutedForeground }]}>SECTION</Text>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {SECTIONS.map(s => (
+              <TouchableOpacity key={s} onPress={() => setSelSec(s)}
+                style={[styles.pill, { backgroundColor: selSec === s ? colors.secondary : colors.muted }]}>
+                <Text style={[styles.pillText, { color: selSec === s ? "#fff" : colors.mutedForeground }]}>{s}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {exportType === "school" && (
+        <View style={[styles.exportInfoBox, { backgroundColor: colors.secondary + "15" }]}>
+          <Feather name="info" size={12} color={colors.secondary} />
+          <Text style={[styles.exportInfoText, { color: colors.secondary }]}>
+            Generates a full-year summary for all {classes.length} classes with section-wise breakdown
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity onPress={handleExport} disabled={loading} style={[styles.exportBtn, { opacity: loading ? 0.7 : 1 }]}>
+        <LinearGradient
+          colors={exportType === "class" ? [colors.primary, "#1a3aaa"] : [colors.secondary, "#0d9469"]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.exportBtnGrad}>
+          {loading
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Feather name="download" size={16} color="#fff" />}
+          <Text style={styles.exportBtnText}>
+            {loading ? "Generating PDF…" : exportType === "class" ? `Export Class ${selClass}${selSec} PDF` : "Export School Summary PDF"}
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { students, records, classes, currentUser, school } = useApp();
@@ -383,6 +497,7 @@ export default function DashboardScreen() {
             <TodaySection students={students} records={records} classes={classes} school={school} />
             <ClassStrengthSection students={students} records={records} classes={classes} />
             <SchoolYearSummary students={students} records={records} school={school} />
+            <ExportPDFPanel students={students} records={records} classes={classes} school={school} />
             <View style={[styles.dividerRow, { borderColor: colors.border }]}>
               <Text style={[styles.dividerLabel, { color: colors.mutedForeground, backgroundColor: colors.background }]}>Class View</Text>
             </View>
@@ -499,6 +614,16 @@ const styles = StyleSheet.create({
   cellText: { fontSize: 13 },
   clsBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   clsBadgeText: { fontSize: 12, fontWeight: "800" },
+  // Export PDF panel
+  exportToggle: { flexDirection: "row", borderRadius: 12, padding: 4, marginBottom: 4 },
+  exportToggleOpt: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9, borderRadius: 10 },
+  exportToggleText: { fontSize: 12, fontWeight: "700" },
+  exportPickerLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 6, marginTop: 4 },
+  exportInfoBox: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, padding: 10, marginTop: 10 },
+  exportInfoText: { flex: 1, fontSize: 11, fontWeight: "600" },
+  exportBtn: { borderRadius: 14, overflow: "hidden", marginTop: 12 },
+  exportBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13 },
+  exportBtnText: { color: "#fff", fontSize: 14, fontWeight: "800" },
   // Summary card
   summaryCard: { padding: 20 },
   summaryTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
