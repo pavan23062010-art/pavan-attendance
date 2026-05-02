@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/attendance-mobile/"
+title = "Pavan Schools — Attendance Mobile"
+version = "1.0.0"
+id = "artifacts/attendance-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/attendance-mobile/" ]
+localPort = 25272
+
+[services.development]
+run = "pnpm --filter @workspace/attendance-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/attendance-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/attendance-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "25272"
+BASE_PATH = "/attendance-mobile/"
