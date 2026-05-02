@@ -4,9 +4,20 @@ import { Router } from "express";
 const router = Router();
 
 router.post("/pavan/chat", async (req, res) => {
-  const { messages, userName } = req.body as {
+  const { messages, userName, context } = req.body as {
     messages: { role: "user" | "assistant"; content: string }[];
     userName?: string;
+    context?: {
+      schoolName?: string;
+      location?: string;
+      academicYear?: string;
+      userRole?: string;
+      totalStudents?: number;
+      below75?: number;
+      classStats?: string;
+      assignedClass?: number;
+      assignedSection?: string;
+    };
   };
 
   if (!Array.isArray(messages)) {
@@ -14,19 +25,36 @@ router.post("/pavan/chat", async (req, res) => {
     return;
   }
 
-  const systemPrompt = `You are PAVAN, a friendly and knowledgeable AI assistant for Pavan Group of Schools, Vinukonda (Academic Year 2026–2027).
-Your role is to help teachers and administrators with their school attendance management tasks.
+  const schoolLine = context?.schoolName
+    ? `You are the AI assistant for **${context.schoolName}**, ${context.location ?? "Vinukonda"} (AY ${context.academicYear ?? "2026–2027"}).`
+    : "You are the AI assistant for Pavan Group of Schools, Vinukonda (AY 2026–2027).";
 
-You know about:
-- The school's attendance tracking system covering Classes 1–10, Sections A/B/C
-- Academic months from July 2026 to June 2027 (12 months)
-- Attendance percentage thresholds: 85%+ is excellent (Regular), 75–84% is acceptable (Regular), below 75% is at risk (Irregular)
-- How to interpret monthly attendance reports, daily marking, and student statistics
-- Tips for improving attendance, handling irregular students, and communicating with parents
+  const dataLine = context ? [
+    context.totalStudents !== undefined ? `• Total students enrolled: ${context.totalStudents}` : "",
+    context.below75 !== undefined ? `• Students currently below 75% attendance: ${context.below75}` : "",
+    context.classStats ? `• Class-wise: ${context.classStats}` : "",
+    context.userRole === "teacher" && context.assignedClass
+      ? `• This teacher manages Class ${context.assignedClass}${context.assignedSection ?? ""}`
+      : "",
+  ].filter(Boolean).join("\n") : "";
 
-Personality: warm, professional, supportive. Keep responses concise (2–4 sentences unless a detailed explanation is needed). Use simple, clear language.
+  const systemPrompt = `You are PAVAN — a friendly, knowledgeable AI assistant specialising in school attendance management.
 
-${userName ? `The user's name is ${userName}. Address them by name occasionally to make the conversation personal.` : ""}`;
+${schoolLine}
+
+**Live School Data (use this to answer specific questions):**
+${dataLine || "No live data available."}
+
+**Your Knowledge:**
+- Attendance thresholds: ≥85% = Excellent (Regular), 75–84% = Acceptable (Regular), <75% = At Risk (Irregular)
+- Academic months: July 2026 through June 2027 (12 months)
+- Daily attendance marking per class and section
+- Parents can be notified by SMS when students are absent
+- PAVAN chatbot, admin and teacher dashboards, class-wise reports
+
+**Personality:** warm, professional, supportive. Give concise, helpful answers (2–5 sentences unless a detailed explanation is truly needed). Use bullet points for lists. Use **bold** for key terms or numbers.
+
+${userName ? `The current user's name is **${userName}** (${context?.userRole ?? "teacher"}). Address them by name occasionally.` : ""}`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -36,7 +64,7 @@ ${userName ? `The user's name is ${userName}. Address them by name occasionally 
   try {
     const stream = await openai.chat.completions.create({
       model: "gpt-5-mini",
-      max_completion_tokens: 512,
+      max_completion_tokens: 600,
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
