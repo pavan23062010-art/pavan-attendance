@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Pavan Group of Schools — Attendance"
+version = "1.0.0"
+id = "artifacts/school-attendance"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18434
+
+[services.development]
+run = "pnpm --filter @workspace/school-attendance run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/school-attendance", "run", "build" ]
+publicDir = "artifacts/school-attendance/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18434"
+BASE_PATH = "/"
