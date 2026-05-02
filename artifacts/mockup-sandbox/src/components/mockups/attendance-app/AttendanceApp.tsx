@@ -27,7 +27,7 @@ interface MonthRecord {
 // ══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════════════════════════════════
-const CLASSES = [1,2,3,4,5,6,7,8,9,10];
+const DEFAULT_CLASSES = [1,2,3,4,5,6,7,8,9,10];
 const SECTIONS = ["A","B","C"];
 const ACADEMIC_MONTHS = [
   "Jul-2026","Aug-2026","Sep-2026","Oct-2026","Nov-2026","Dec-2026",
@@ -40,6 +40,7 @@ const PIE_COLORS = ["#4e73df","#1cc88a","#f6c23e","#e74a3b","#36b9cc"];
 const LS_USERS    = "sa2_users";
 const LS_STUDENTS = "sa2_students";
 const LS_RECORDS  = "sa2_records";
+const LS_CLASSES  = "sa2_classes";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SEED DATA
@@ -348,7 +349,7 @@ function LoginPage({ users, onLogin }: { users: UserAccount[]; onLogin:(u:UserAc
 // ══════════════════════════════════════════════════════════════════════════════
 // SIDEBAR
 // ══════════════════════════════════════════════════════════════════════════════
-const NAV_ADMIN   = [{id:"dashboard",icon:"🏠",label:"Dashboard"},{id:"daily",icon:"📋",label:"Daily Attendance"},{id:"monthly",icon:"📅",label:"Monthly Report"},{id:"analytics",icon:"📊",label:"Analytics"},{id:"students",icon:"👨‍🎓",label:"Students"},{id:"users",icon:"👥",label:"Manage Users"},{id:"settings",icon:"⚙️",label:"Settings"}];
+const NAV_ADMIN   = [{id:"dashboard",icon:"🏠",label:"Dashboard"},{id:"daily",icon:"📋",label:"Daily Attendance"},{id:"monthly",icon:"📅",label:"Monthly Report"},{id:"analytics",icon:"📊",label:"Analytics"},{id:"students",icon:"👨‍🎓",label:"Students"},{id:"classes",icon:"🏫",label:"Manage Classes"},{id:"users",icon:"👥",label:"Manage Users"},{id:"settings",icon:"⚙️",label:"Settings"}];
 const NAV_TEACHER = [{id:"dashboard",icon:"🏠",label:"Dashboard"},{id:"daily",icon:"📋",label:"Daily Attendance"},{id:"monthly",icon:"📅",label:"Monthly Report"},{id:"analytics",icon:"📊",label:"Analytics"},{id:"students",icon:"👨‍🎓",label:"Students"},{id:"settings",icon:"⚙️",label:"Settings"}];
 
 function Sidebar({ active,onNav,onLogout,user }: { active:string; onNav:(id:string)=>void; onLogout:()=>void; user:UserAccount }){
@@ -382,7 +383,7 @@ function Sidebar({ active,onNav,onLogout,user }: { active:string; onNav:(id:stri
 // ══════════════════════════════════════════════════════════════════════════════
 // CLASS FILTER BAR
 // ══════════════════════════════════════════════════════════════════════════════
-function ClassFilter({ selClass,selSec,setClass,setSec,user }: { selClass:number; selSec:string; setClass:(v:number)=>void; setSec:(v:string)=>void; user:UserAccount }){
+function ClassFilter({ selClass,selSec,setClass,setSec,user,classes }: { selClass:number; selSec:string; setClass:(v:number)=>void; setSec:(v:string)=>void; user:UserAccount; classes:number[] }){
   if(user.role==="teacher") return(
     <div className="flex items-center gap-2 mb-4 flex-wrap">
       <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Class</span>
@@ -395,7 +396,7 @@ function ClassFilter({ selClass,selSec,setClass,setSec,user }: { selClass:number
     <div className="flex flex-wrap items-center gap-3 mb-4 bg-white rounded-2xl p-3 shadow-sm">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Class</span>
-        <div className="flex gap-1 flex-wrap">{CLASSES.map(c=>(
+        <div className="flex gap-1 flex-wrap">{classes.map(c=>(
           <button key={c} onClick={()=>setClass(c)} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
             style={{background:selClass===c?"#4e73df":"#f0f2f8",color:selClass===c?"white":"#555"}}>
             {c}
@@ -813,9 +814,9 @@ function Analytics({ students,records,selClass,selSec }: { students:Student[]; r
 // ══════════════════════════════════════════════════════════════════════════════
 // ADD STUDENT MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function AddStudentModal({ onAdd, onClose, defaultClass, defaultSection, user }: {
+function AddStudentModal({ onAdd, onClose, defaultClass, defaultSection, user, classes }: {
   onAdd:(s:Student)=>void; onClose:()=>void;
-  defaultClass:number; defaultSection:string; user:UserAccount;
+  defaultClass:number; defaultSection:string; user:UserAccount; classes:number[];
 }){
   const [name,setName]       = useState("");
   const [roll,setRoll]       = useState("");
@@ -869,7 +870,7 @@ function AddStudentModal({ onAdd, onClose, defaultClass, defaultSection, user }:
                   ? <div className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 text-sm font-semibold">Class {user.assignedClass}</div>
                   : <select value={cls} onChange={e=>setCls(Number(e.target.value))}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30">
-                      {CLASSES.map(c=><option key={c} value={c}>Class {c}</option>)}
+                      {classes.map(c=><option key={c} value={c}>Class {c}</option>)}
                     </select>
                 }
               </div>
@@ -1179,12 +1180,145 @@ function Settings({ currentUser,users,onUpdate }: { currentUser:UserAccount; use
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// MANAGE CLASSES (Admin only)
+// ══════════════════════════════════════════════════════════════════════════════
+function ManageClasses({ classes, students, records, onAddClass, onRemoveClass }: {
+  classes: number[]; students: Student[]; records: MonthRecord[];
+  onAddClass:(cls:number)=>void; onRemoveClass:(cls:number)=>void;
+}){
+  const [input,setInput]       = useState("");
+  const [err,setErr]           = useState("");
+  const [succ,setSucc]         = useState("");
+  const [confirmDel,setConfirmDel] = useState<number|null>(null);
+
+  function addCls(){
+    const n = parseInt(input.trim());
+    if(isNaN(n)||n<1||n>99){ setErr("Enter a valid class number (1–99)."); return; }
+    if(classes.includes(n)){ setErr(`Class ${n} already exists.`); return; }
+    onAddClass(n); setInput(""); setErr("");
+    setSucc(`Class ${n} added!`); setTimeout(()=>setSucc(""),2500);
+  }
+
+  function removeCls(cls: number){
+    onRemoveClass(cls); setConfirmDel(null);
+    setSucc(`Class ${cls} removed.`); setTimeout(()=>setSucc(""),2500);
+  }
+
+  const sorted = [...classes].sort((a,b)=>a-b);
+
+  return(
+    <div className="space-y-5">
+      <div><h2 className="text-xl font-bold text-gray-800">Manage Classes</h2>
+        <p className="text-sm text-gray-500">Add or remove classes for Academic Year 2026–2027</p></div>
+
+      {/* Add class */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm">
+        <h3 className="font-semibold text-gray-700 mb-3 text-sm">Add New Class</h3>
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Class Number</label>
+            <input value={input} onChange={e=>{ setInput(e.target.value); setErr(""); }}
+              onKeyDown={e=>e.key==="Enter"&&addCls()}
+              placeholder="e.g. 11 or 12"
+              type="number" min={1} max={99}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+          </div>
+          <motion.button onClick={addCls} whileHover={{scale:1.02}} whileTap={{scale:0.97}}
+            className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold"
+            style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>
+            + Add Class
+          </motion.button>
+        </div>
+        {err  && <p className="text-xs text-red-500 mt-2">⚠️ {err}</p>}
+        {succ && <p className="text-xs text-green-600 mt-2">✓ {succ}</p>}
+        <p className="text-xs text-gray-400 mt-3">When a class is added, sections A, B and C are automatically created for it with empty attendance records.</p>
+      </div>
+
+      {/* Class cards grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {sorted.map(cls=>{
+          const totalStu = students.filter(s=>s.class===cls).length;
+          const secCounts = SECTIONS.map(sec=>({ sec, count:students.filter(s=>s.class===cls&&s.section===sec).length }));
+          const isConfirming = confirmDel===cls;
+          return(
+            <motion.div key={cls} layout
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+              initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                      style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>
+                      {cls}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">Class {cls}</p>
+                      <p className="text-xs text-gray-400">{totalStu} student{totalStu!==1?"s":""} enrolled</p>
+                    </div>
+                  </div>
+                </div>
+                {!isConfirming
+                  ? <button onClick={()=>setConfirmDel(cls)}
+                      className="text-gray-300 hover:text-red-400 text-xl font-bold leading-none transition-colors" title="Remove class">
+                      ×
+                    </button>
+                  : <div className="flex items-center gap-1.5">
+                      <button onClick={()=>removeCls(cls)}
+                        className="px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold">
+                        Delete
+                      </button>
+                      <button onClick={()=>setConfirmDel(null)}
+                        className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs">
+                        Cancel
+                      </button>
+                    </div>
+                }
+              </div>
+
+              {/* Section breakdown */}
+              <div className="flex gap-2">
+                {secCounts.map(({ sec, count })=>(
+                  <div key={sec} className="flex-1 rounded-xl p-3 text-center"
+                    style={{background:sec==="A"?"#eff6ff":sec==="B"?"#f0fdf4":"#fefce8"}}>
+                    <p className="text-lg font-bold" style={{color:sec==="A"?"#2563eb":sec==="B"?"#16a34a":"#ca8a04"}}>
+                      {count}
+                    </p>
+                    <p className="text-xs font-semibold" style={{color:sec==="A"?"#93c5fd":sec==="B"?"#86efac":"#fde047"}}>
+                      Sec {sec}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {isConfirming && totalStu>0 && (
+                <motion.p initial={{opacity:0}} animate={{opacity:1}}
+                  className="mt-3 text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl">
+                  ⚠️ This will remove Class {cls} from the filter. <strong>{totalStu} student{totalStu!==1?"s":""}</strong> and their attendance records will be hidden but not deleted.
+                </motion.p>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {sorted.length===0 && (
+        <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
+          <div className="text-4xl mb-3">🏫</div>
+          <p className="text-gray-400 font-medium">No classes yet. Add one above.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ROOT APP
 // ══════════════════════════════════════════════════════════════════════════════
 export function AttendanceApp(){
   const [users,setUsers]       = useLS<UserAccount[]>(LS_USERS, DEFAULT_USERS);
   const [students,setStudents] = useLS<Student[]>(LS_STUDENTS, SEED_STUDENTS);
   const [records,setRecords]   = useLS<MonthRecord[]>(LS_RECORDS, SEED_RECORDS);
+  const [classes,setClasses]   = useLS<number[]>(LS_CLASSES, DEFAULT_CLASSES);
   const [currentUser,setCurrentUser] = useState<UserAccount|null>(null);
   const [page,setPage]         = useState("dashboard");
   const [selClass,setSelClass] = useState(1);
@@ -1200,12 +1334,37 @@ export function AttendanceApp(){
   const eClass = currentUser.role==="teacher" ? (currentUser.assignedClass??selClass) : selClass;
   const eSec   = currentUser.role==="teacher" ? (currentUser.assignedSection??selSec) : selSec;
 
-  function addStudent(s: Student){ setStudents(p=>[...p,s]); setRecords(p=>p.map(r=>r.class===s.class&&r.section===s.section?{...r,daily:{...r.daily,[s.id]:{}}}:r)); }
+  // ensure selClass is still in classes list after removal
+  const safeClass = classes.includes(eClass) ? eClass : (classes[0] ?? 1);
+
+  function addStudent(s: Student){
+    setStudents(p=>[...p,s]);
+    setRecords(p=>p.map(r=>r.class===s.class&&r.section===s.section?{...r,daily:{...r.daily,[s.id]:{}}}:r));
+  }
   function removeStudent(id: string){ setStudents(p=>p.filter(s=>s.id!==id)); }
   function updateDailyRecord(key: string, daily: Record<string,Record<string,"P"|"A">>){ setRecords(p=>p.map(r=>r.key===key?{...r,daily}:r)); }
 
-  const shared = { students, records, selClass:eClass, selSec:eSec };
-  const showFilter = currentUser.role==="admin" && !["users","settings"].includes(page);
+  function addClass(cls: number){
+    setClasses(p=>[...p,cls].sort((a,b)=>a-b));
+    // create empty MonthRecord entries for all months × all sections
+    const newRecs: MonthRecord[] = [];
+    ACADEMIC_MONTHS.forEach((month,mi)=>{
+      SECTIONS.forEach(sec=>{
+        const key=`${cls}-${sec}-${month}`;
+        newRecs.push({ key, month, class:cls, section:sec, workingDays:WORKING_DAYS_PER_MONTH[mi], daily:{} });
+      });
+    });
+    setRecords(p=>[...p,...newRecs]);
+    setSelClass(cls);
+  }
+
+  function removeClass(cls: number){
+    setClasses(p=>p.filter(c=>c!==cls));
+    if(safeClass===cls) setSelClass(classes.filter(c=>c!==cls)[0]??1);
+  }
+
+  const shared = { students, records, selClass:safeClass, selSec:eSec };
+  const showFilter = currentUser.role==="admin" && !["users","settings","classes"].includes(page);
 
   const pages: Record<string,React.ReactNode> = {
     dashboard: <Dashboard {...shared}/>,
@@ -1213,6 +1372,7 @@ export function AttendanceApp(){
     monthly:   <MonthlyReport {...shared}/>,
     analytics: <Analytics {...shared}/>,
     students:  <StudentsTab {...shared} onAdd={addStudent} onRemove={removeStudent} user={currentUser}/>,
+    classes:   <ManageClasses classes={classes} students={students} records={records} onAddClass={addClass} onRemoveClass={removeClass}/>,
     users:     <ManageUsers users={users} currentUser={currentUser} onUpdate={setUsers}/>,
     settings:  <Settings currentUser={currentUser} users={users} onUpdate={u=>{ setUsers(u); setCurrentUser(u.find(x=>x.id===currentUser.id)??currentUser); }}/>,
   };
@@ -1224,21 +1384,22 @@ export function AttendanceApp(){
         <AddStudentModal
           onAdd={addStudent}
           onClose={()=>setShowAddModal(false)}
-          defaultClass={eClass}
+          defaultClass={safeClass}
           defaultSection={eSec}
           user={currentUser}
+          classes={classes}
         />
       )}
 
       <div className="w-52 shrink-0 shadow-xl"><Sidebar active={page} onNav={setPage} onLogout={()=>setCurrentUser(null)} user={currentUser}/></div>
       <div className="flex-1 overflow-y-auto relative">
         <div className="p-6 max-w-5xl">
-          {showFilter&&<ClassFilter selClass={eClass} selSec={eSec} setClass={setSelClass} setSec={setSelSec} user={currentUser}/>}
+          {showFilter&&<ClassFilter selClass={safeClass} selSec={eSec} setClass={setSelClass} setSec={setSelSec} user={currentUser} classes={classes}/>}
           {pages[page]}
         </div>
 
-        {/* Floating "+ Add Student" button — visible on all pages except users/settings */}
-        {!["users","settings"].includes(page) && (
+        {/* Floating "+ Add Student" button — visible on all pages except admin-only pages */}
+        {!["users","settings","classes"].includes(page) && (
           <motion.button
             onClick={()=>setShowAddModal(true)}
             whileHover={{scale:1.06, boxShadow:"0 8px 30px rgba(78,115,223,0.45)"}}
