@@ -811,44 +811,249 @@ function Analytics({ students,records,selClass,selSec }: { students:Student[]; r
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ADD STUDENT MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function AddStudentModal({ onAdd, onClose, defaultClass, defaultSection, user }: {
+  onAdd:(s:Student)=>void; onClose:()=>void;
+  defaultClass:number; defaultSection:string; user:UserAccount;
+}){
+  const [name,setName]       = useState("");
+  const [roll,setRoll]       = useState("");
+  const [cls,setCls]         = useState(defaultClass);
+  const [sec,setSec]         = useState(defaultSection);
+  const [err,setErr]         = useState("");
+  const [done,setDone]       = useState(false);
+  const [added,setAdded]     = useState<{name:string;cls:number;sec:string}[]>([]);
+  const nameRef              = useRef<HTMLInputElement>(null);
+
+  useEffect(()=>{ nameRef.current?.focus(); },[]);
+
+  function submit(e: React.FormEvent){ e.preventDefault(); setErr("");
+    if(!name.trim()){ setErr("Student name is required."); return; }
+    if(!roll.trim()){ setErr("Roll number is required."); return; }
+    onAdd({ id:uid(), name:name.trim(), rollNo:roll.trim(), class:cls, section:sec });
+    setAdded(p=>[...p,{name:name.trim(),cls,sec}]);
+    setDone(true); setName(""); setRoll("");
+    setTimeout(()=>setDone(false),1500);
+    nameRef.current?.focus();
+  }
+
+  const isTeacher = user.role==="teacher";
+
+  return(
+    <AnimatePresence>
+      <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+        <motion.div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}
+          initial={{opacity:0}} animate={{opacity:1}}/>
+        <motion.div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+          initial={{opacity:0,scale:0.9,y:20}} animate={{opacity:1,scale:1,y:0}}
+          exit={{opacity:0,scale:0.9,y:20}} transition={{type:"spring",stiffness:300,damping:30}}>
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white text-lg font-bold">Add New Student</h2>
+                <p className="text-white/70 text-xs mt-0.5">Fill in the details below</p>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white font-bold transition-all">×</button>
+            </div>
+          </div>
+
+          <form onSubmit={submit} className="p-6 space-y-4">
+            {/* Class + Section row — editable only for admin */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Class</label>
+                {isTeacher
+                  ? <div className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 text-sm font-semibold">Class {user.assignedClass}</div>
+                  : <select value={cls} onChange={e=>setCls(Number(e.target.value))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30">
+                      {CLASSES.map(c=><option key={c} value={c}>Class {c}</option>)}
+                    </select>
+                }
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Section</label>
+                {isTeacher
+                  ? <div className="px-3 py-2.5 rounded-xl bg-green-50 text-green-600 text-sm font-semibold">Section {user.assignedSection}</div>
+                  : <div className="flex gap-1.5">
+                      {SECTIONS.map(s=>(
+                        <button key={s} type="button" onClick={()=>setSec(s)}
+                          className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+                          style={{background:sec===s?"linear-gradient(135deg,#1cc88a,#0fa878)":"#f0f2f8",color:sec===s?"white":"#777"}}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Roll No */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Roll Number</label>
+              <input value={roll} onChange={e=>setRoll(e.target.value)} placeholder="e.g. 001"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+            </div>
+
+            {/* Student Name */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name</label>
+              <input ref={nameRef} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Priya Sharma"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+            </div>
+
+            {/* Preview avatar */}
+            {name.trim() && (
+              <motion.div initial={{opacity:0,y:6}} animate={{opacity:1,y:0}}
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl" style={{background:"#f0f4ff"}}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                  style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>{name.trim().charAt(0)}</div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{name.trim()}</p>
+                  <p className="text-xs text-gray-400">Class {isTeacher?user.assignedClass:cls} – Section {isTeacher?user.assignedSection:sec}{roll.trim()&&` · Roll ${roll.trim()}`}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {err && <p className="text-xs text-red-500 flex items-center gap-1">⚠️ {err}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all">
+                Done
+              </button>
+              <motion.button type="submit" whileHover={{scale:1.02}} whileTap={{scale:0.97}}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-semibold relative overflow-hidden"
+                style={{background:done?"#1cc88a":"linear-gradient(135deg,#4e73df,#1cc88a)"}}>
+                {done ? "✓ Added!" : "+ Add Student"}
+              </motion.button>
+            </div>
+
+            {/* Recently added list */}
+            {added.length > 0 && (
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Added this session</p>
+                <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                  {[...added].reverse().map((a,i)=>(
+                    <div key={i} className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="text-green-500 font-bold">✓</span>
+                      <span className="font-medium">{a.name}</span>
+                      <span className="text-gray-400">— Class {a.cls}{a.sec}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // STUDENTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function StudentsTab({ students,records,selClass,selSec,onAdd,onRemove }: { students:Student[]; records:MonthRecord[]; selClass:number; selSec:string; onAdd:(s:Student)=>void; onRemove:(id:string)=>void }){
-  const clsRec=records.filter(r=>r.class===selClass&&r.section===selSec);
-  const totalWD=clsRec.reduce((a,r)=>a+r.workingDays,0);
-  const clsStu=students.filter(s=>s.class===selClass&&s.section===selSec);
-  const [name,setName]=useState(""); const [roll,setRoll]=useState(""); const [search,setSearch]=useState("");
-  function add(){ if(!name.trim()||!roll.trim()) return; onAdd({id:uid(),name:name.trim(),rollNo:roll.trim(),class:selClass,section:selSec}); setName(""); setRoll(""); }
-  const filtered=clsStu.filter(s=>s.name.toLowerCase().includes(search.toLowerCase())||s.rollNo.includes(search));
+function StudentsTab({ students,records,selClass,selSec,onAdd,onRemove,user }: { students:Student[]; records:MonthRecord[]; selClass:number; selSec:string; onAdd:(s:Student)=>void; onRemove:(id:string)=>void; user:UserAccount }){
+  const clsRec   = records.filter(r=>r.class===selClass&&r.section===selSec);
+  const totalWD  = clsRec.reduce((a,r)=>a+r.workingDays,0);
+  const clsStu   = students.filter(s=>s.class===selClass&&s.section===selSec);
+  const [search,setSearch] = useState("");
+  const [showModal,setShowModal] = useState(false);
+  const [confirmDel,setConfirmDel] = useState<string|null>(null);
+
+  const filtered = clsStu.filter(s=>s.name.toLowerCase().includes(search.toLowerCase())||s.rollNo.includes(search));
+
+  // Stat tiles
+  const below75  = clsStu.filter(s=>{ const tp=clsRec.reduce((a,r)=>a+presentCount(r,s.id),0); return pct(tp,totalWD)<75; }).length;
+  const avgP     = clsStu.length ? Math.round(clsStu.reduce((a,s)=>{ const tp=clsRec.reduce((b,r)=>b+presentCount(r,s.id),0); return a+pct(tp,totalWD); },0)/clsStu.length) : 0;
+
   return(
     <div className="space-y-5">
-      <div><h2 className="text-xl font-bold text-gray-800">Students</h2><p className="text-sm text-gray-500">Class {selClass} – Section {selSec} · {clsStu.length} enrolled</p></div>
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <h3 className="font-semibold text-gray-700 mb-3 text-sm">Add Student</h3>
-        <div className="flex gap-3">
-          <input value={roll} onChange={e=>setRoll(e.target.value)} placeholder="Roll No" className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
-          <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="Full Name" className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
-          <button onClick={add} className="px-5 py-2.5 rounded-xl text-white text-sm font-semibold" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>Add</button>
+      {showModal && <AddStudentModal onAdd={onAdd} onClose={()=>setShowModal(false)} defaultClass={selClass} defaultSection={selSec} user={user}/>}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div><h2 className="text-xl font-bold text-gray-800">Students</h2>
+          <p className="text-sm text-gray-500">Class {selClass} – Section {selSec} · {clsStu.length} enrolled</p></div>
+        <motion.button whileHover={{scale:1.03}} whileTap={{scale:0.97}} onClick={()=>setShowModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold shadow-md"
+          style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>
+          <span className="text-base font-bold">+</span> Add Student
+        </motion.button>
+      </div>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center border-l-4 border-[#4e73df]">
+          <div className="text-2xl font-bold text-[#4e73df]">{clsStu.length}</div>
+          <div className="text-xs text-gray-400 mt-0.5">Total Students</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center border-l-4 border-[#1cc88a]">
+          <div className="text-2xl font-bold text-[#1cc88a]">{avgP}%</div>
+          <div className="text-xs text-gray-400 mt-0.5">Class Avg</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center border-l-4 border-[#e74a3b]">
+          <div className="text-2xl font-bold text-[#e74a3b]">{below75}</div>
+          <div className="text-xs text-gray-400 mt-0.5">Below 75%</div>
         </div>
       </div>
+
+      {/* Search + table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex gap-3">
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search by name or roll..." className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="🔍 Search by name or roll number…"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4e73df]/30"/>
+          <span className="text-xs text-gray-400 shrink-0">{filtered.length} of {clsStu.length}</span>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50"><tr>{["Roll","Name","Total Present","Total Absent","Attendance %","Status",""].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>)}</tr></thead>
-          <tbody>{filtered.map(s=>{ const tp=clsRec.reduce((a,r)=>a+presentCount(r,s.id),0); const p=pct(tp,totalWD);
-            return(<tr key={s.id} className="border-t border-gray-50 hover:bg-gray-50/50">
-              <td className="px-4 py-2.5 text-gray-500">{s.rollNo}</td>
-              <td className="px-4 py-2.5"><div className="flex items-center gap-2"><div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>{s.name.charAt(0)}</div>{s.name}</div></td>
-              <td className="px-4 py-2.5 text-green-600 font-semibold">{tp}</td>
-              <td className="px-4 py-2.5 text-red-500 font-semibold">{totalWD-tp}</td>
-              <td className="px-4 py-2.5"><div className="flex items-center gap-2"><div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-2 rounded-full" style={{width:`${p}%`,background:gc(p)}}/></div><span className="font-bold" style={{color:gc(p)}}>{p}%</span></div></td>
-              <td className="px-4 py-2.5"><Badge label={p>=75?"Regular":"Irregular"} color={p>=75?"green":"red"}/></td>
-              <td className="px-4 py-2.5"><button onClick={()=>onRemove(s.id)} className="text-gray-300 hover:text-red-400 text-lg font-bold">×</button></td>
-            </tr>);
-          })}</tbody>
-        </table>
+        {filtered.length === 0
+          ? <div className="py-16 text-center">
+              <div className="text-5xl mb-3">👨‍🎓</div>
+              <p className="text-gray-400 font-medium">{clsStu.length===0?"No students enrolled yet.":"No students match your search."}</p>
+              {clsStu.length===0&&<button onClick={()=>setShowModal(true)} className="mt-4 px-5 py-2 rounded-xl text-white text-sm font-semibold" style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>+ Add First Student</button>}
+            </div>
+          : <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>{["#","Roll","Name","Total Present","Absent","Att. %","Status",""].map(h=><th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {filtered.map((s,i)=>{ const tp=clsRec.reduce((a,r)=>a+presentCount(r,s.id),0); const p=pct(tp,totalWD);
+                  return(<tr key={s.id} className="border-t border-gray-50 hover:bg-blue-50/30 transition-colors">
+                    <td className="px-4 py-2.5 text-gray-400 font-medium">#{i+1}</td>
+                    <td className="px-4 py-2.5 font-mono text-gray-500 text-xs">{s.rollNo}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                          style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)"}}>{s.name.charAt(0)}</div>
+                        <div><p className="font-semibold text-gray-800">{s.name}</p><p className="text-xs text-gray-400">Class {s.class}{s.section}</p></div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-green-600 font-bold">{tp}</td>
+                    <td className="px-4 py-2.5 text-red-500 font-bold">{totalWD-tp}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-2 rounded-full transition-all" style={{width:`${p}%`,background:gc(p)}}/></div>
+                        <span className="font-bold text-xs" style={{color:gc(p)}}>{p}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5"><Badge label={p>=75?"Regular":"Irregular"} color={p>=75?"green":"red"}/></td>
+                    <td className="px-4 py-2.5">
+                      {confirmDel===s.id
+                        ? <div className="flex items-center gap-1">
+                            <button onClick={()=>{onRemove(s.id);setConfirmDel(null);}} className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold">Delete</button>
+                            <button onClick={()=>setConfirmDel(null)} className="px-2 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs">Cancel</button>
+                          </div>
+                        : <button onClick={()=>setConfirmDel(s.id)} className="text-gray-300 hover:text-red-400 text-lg font-bold transition-colors">×</button>
+                      }
+                    </td>
+                  </tr>);
+                })}
+              </tbody>
+            </table>
+        }
       </div>
     </div>
   );
@@ -984,6 +1189,7 @@ export function AttendanceApp(){
   const [page,setPage]         = useState("dashboard");
   const [selClass,setSelClass] = useState(1);
   const [selSec,setSelSec]     = useState("A");
+  const [showAddModal,setShowAddModal] = useState(false);
 
   function handleLogin(u: UserAccount){
     setCurrentUser(u);
@@ -1006,19 +1212,44 @@ export function AttendanceApp(){
     daily:     <DailyAttendance {...shared} onUpdate={updateDailyRecord}/>,
     monthly:   <MonthlyReport {...shared}/>,
     analytics: <Analytics {...shared}/>,
-    students:  <StudentsTab {...shared} onAdd={addStudent} onRemove={removeStudent}/>,
+    students:  <StudentsTab {...shared} onAdd={addStudent} onRemove={removeStudent} user={currentUser}/>,
     users:     <ManageUsers users={users} currentUser={currentUser} onUpdate={setUsers}/>,
     settings:  <Settings currentUser={currentUser} users={users} onUpdate={u=>{ setUsers(u); setCurrentUser(u.find(x=>x.id===currentUser.id)??currentUser); }}/>,
   };
 
   return(
     <div className="flex h-screen bg-[#eef2f7] overflow-hidden" style={{fontFamily:"'Poppins',sans-serif"}}>
+      {/* Global Add Student Modal */}
+      {showAddModal && (
+        <AddStudentModal
+          onAdd={addStudent}
+          onClose={()=>setShowAddModal(false)}
+          defaultClass={eClass}
+          defaultSection={eSec}
+          user={currentUser}
+        />
+      )}
+
       <div className="w-52 shrink-0 shadow-xl"><Sidebar active={page} onNav={setPage} onLogout={()=>setCurrentUser(null)} user={currentUser}/></div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative">
         <div className="p-6 max-w-5xl">
           {showFilter&&<ClassFilter selClass={eClass} selSec={eSec} setClass={setSelClass} setSec={setSelSec} user={currentUser}/>}
           {pages[page]}
         </div>
+
+        {/* Floating "+ Add Student" button — visible on all pages except users/settings */}
+        {!["users","settings"].includes(page) && (
+          <motion.button
+            onClick={()=>setShowAddModal(true)}
+            whileHover={{scale:1.06, boxShadow:"0 8px 30px rgba(78,115,223,0.45)"}}
+            whileTap={{scale:0.94}}
+            className="fixed bottom-6 right-6 flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-semibold text-sm shadow-xl"
+            style={{background:"linear-gradient(135deg,#4e73df,#1cc88a)", zIndex:40}}
+            initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} transition={{delay:0.3}}>
+            <span className="text-lg font-bold leading-none">+</span>
+            Add Student
+          </motion.button>
+        )}
       </div>
     </div>
   );
