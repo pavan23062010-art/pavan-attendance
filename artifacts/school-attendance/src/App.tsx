@@ -656,6 +656,7 @@ function DailyAttendance({ students,records,selClass,selSec,onUpdate }: { studen
 // MONTHLY REPORT
 // ══════════════════════════════════════════════════════════════════════════════
 function MonthlyReport({ students,records,selClass,selSec }: { students:Student[]; records:MonthRecord[]; selClass:number; selSec:string }){
+  const school = useContext(SchoolContext);
   const [selMonth,setSelMonth]=useState(ACADEMIC_MONTHS[0]);
   const clsStu = students.filter(s=>s.class===selClass&&s.section===selSec);
   const rec = records.find(r=>r.class===selClass&&r.section===selSec&&r.month===selMonth);
