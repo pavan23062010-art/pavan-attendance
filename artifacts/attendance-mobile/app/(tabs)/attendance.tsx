@@ -2,7 +2,16 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
-import { FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ACADEMIC_MONTHS, MONTH_LABELS, SECTIONS, useApp } from "@/context/AppContext";
@@ -43,14 +52,82 @@ export default function AttendanceScreen() {
 
   const presentToday = clsStu.filter(s => getStatus(s.id) === "P").length;
 
+  // Compute absent students who have a parent mobile number
+  const absentWithMobile = useMemo(() =>
+    clsStu.filter(s => getStatus(s.id) === "A" && s.parentMobile),
+    [clsStu, rec, selDay]
+  );
+
+  const notifyAllAbsent = () => {
+    if (absentWithMobile.length === 0) {
+      Alert.alert("No Numbers Available", "None of the absent students have a parent mobile number. Please add numbers in the Students tab.");
+      return;
+    }
+
+    const numbers = absentWithMobile.map(s => `+91${s.parentMobile}`).join(",");
+    const names = absentWithMobile.map(s => `${s.name} (${s.rollNo})`).join(", ");
+    const msg =
+      `Dear Parents, the following student(s) were ABSENT on Day ${selDay}, ${MONTH_LABELS[selMonthIdx]} at PAVAN GROUP OF SCHOOLS, Vinukonda: ${names}. Please ensure regular attendance. - School Administration`;
+
+    const url = Platform.OS === "ios"
+      ? `sms:${absentWithMobile[0].parentMobile}&body=${encodeURIComponent(msg)}`
+      : `sms:${numbers}?body=${encodeURIComponent(msg)}`;
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported || Platform.OS === "web") {
+        if (Platform.OS === "web") {
+          Alert.alert(
+            `Notify ${absentWithMobile.length} Parent(s)`,
+            `Absent students:\n${names}\n\nParent numbers:\n${absentWithMobile.map(s => `+91${s.parentMobile}`).join("\n")}`,
+            [{ text: "Close" }]
+          );
+        } else {
+          Linking.openURL(url);
+        }
+      } else {
+        Alert.alert("Cannot Open SMS", "Please manually notify the following parents:\n\n" +
+          absentWithMobile.map(s => `${s.name}: +91${s.parentMobile}`).join("\n"));
+      }
+    });
+  };
+
+  const notifySingle = (studentId: string) => {
+    const s = clsStu.find(x => x.id === studentId);
+    if (!s?.parentMobile) return;
+    const msg =
+      `Dear Parent, your ward ${s.name} (Roll: ${s.rollNo}) of Class ${selClass}${selSec} was ABSENT on Day ${selDay}, ${MONTH_LABELS[selMonthIdx]} at PAVAN GROUP OF SCHOOLS, Vinukonda. Please ensure regular attendance. - School Administration`;
+
+    const url = Platform.OS === "ios"
+      ? `sms:${s.parentMobile}&body=${encodeURIComponent(msg)}`
+      : `sms:+91${s.parentMobile}?body=${encodeURIComponent(msg)}`;
+
+    if (Platform.OS === "web") {
+      Alert.alert(`Send SMS to parent of ${s.name}`, `To: +91${s.parentMobile}\n\n${msg}`, [{ text: "Close" }]);
+    } else {
+      Linking.openURL(url).catch(() =>
+        Alert.alert("Cannot open SMS", `Please message: +91${s.parentMobile}`)
+      );
+    }
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <LinearGradient colors={[school.primaryColor, "#1a3aaa"]} style={[styles.header, { paddingTop: topPad + 12 }]}>
-        <Text style={styles.headerTitle}>Daily Attendance</Text>
-        <Text style={styles.headerSub}>Class {selClass} – Sec {selSec} · {MONTH_LABELS[selMonthIdx]} Day {selDay}</Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.headerTitle}>Daily Attendance</Text>
+            <Text style={styles.headerSub}>Class {selClass} – Sec {selSec} · {MONTH_LABELS[selMonthIdx]} Day {selDay}</Text>
+          </View>
+          {absentWithMobile.length > 0 && (
+            <TouchableOpacity onPress={notifyAllAbsent} style={styles.headerNotifyBtn}>
+              <Feather name="bell" size={14} color="#fff" />
+              <Text style={styles.headerNotifyText}>Notify {absentWithMobile.length}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: bottomPad + 16 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: bottomPad + 80 }} showsVerticalScrollIndicator={false}>
         {/* Class / Section pickers (admin only) */}
         {!isTeacher && (
           <View style={[styles.pickerBox, { backgroundColor: colors.card }]}>
@@ -138,7 +215,7 @@ export default function AttendanceScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: 16 }}>
-            {clsStu.map((s, i) => {
+            {clsStu.map(s => {
               const status = getStatus(s.id);
               const isPresent = status === "P";
               return (
@@ -150,9 +227,24 @@ export default function AttendanceScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.stuName, { color: colors.foreground }]}>{s.name}</Text>
                     <Text style={[styles.stuRoll, { color: colors.mutedForeground }]}>{s.rollNo}</Text>
+                    {s.parentMobile && (
+                      <Text style={[styles.stuMobile, { color: colors.mutedForeground }]}>
+                        <Feather name="phone" size={10} color={colors.mutedForeground} /> +91 {s.parentMobile}
+                      </Text>
+                    )}
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: isPresent ? "#dcfce7" : "#fee2e2" }]}>
-                    <Text style={[styles.statusText, { color: isPresent ? "#16a34a" : "#dc2626" }]}>{status}</Text>
+                  <View style={styles.stuRight}>
+                    <View style={[styles.statusBadge, { backgroundColor: isPresent ? "#dcfce7" : "#fee2e2" }]}>
+                      <Text style={[styles.statusText, { color: isPresent ? "#16a34a" : "#dc2626" }]}>{status}</Text>
+                    </View>
+                    {!isPresent && s.parentMobile && (
+                      <TouchableOpacity
+                        onPress={e => { e.stopPropagation?.(); notifySingle(s.id); }}
+                        style={[styles.smsBtn, { backgroundColor: "#fff7ed" }]}
+                      >
+                        <Feather name="message-square" size={14} color="#ea580c" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -160,6 +252,21 @@ export default function AttendanceScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Notify Absent Parents floating banner */}
+      {absentWithMobile.length > 0 && (
+        <TouchableOpacity onPress={notifyAllAbsent}
+          style={[styles.notifyBanner, { bottom: bottomPad + 12, backgroundColor: "#ea580c" }]}>
+          <LinearGradient colors={["#f97316", "#ea580c"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.notifyBannerGrad}>
+            <Feather name="message-square" size={18} color="#fff" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.notifyBannerTitle}>Notify Absent Parents</Text>
+              <Text style={styles.notifyBannerSub}>{absentWithMobile.length} parent{absentWithMobile.length > 1 ? "s" : ""} with registered number</Text>
+            </View>
+            <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -167,8 +274,11 @@ export default function AttendanceScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 20 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerTitle: { color: "#fff", fontSize: 26, fontWeight: "800" },
   headerSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 2 },
+  headerNotifyBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#ea580c", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  headerNotifyText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   scroll: { flex: 1 },
   pickerBox: { marginHorizontal: 16, marginTop: 16, marginBottom: 8, borderRadius: 16, padding: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   pickerRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
@@ -197,6 +307,14 @@ const styles = StyleSheet.create({
   stuAvatarText: { fontSize: 15, fontWeight: "700" },
   stuName: { fontSize: 14, fontWeight: "600" },
   stuRoll: { fontSize: 11, marginTop: 1 },
+  stuMobile: { fontSize: 10, marginTop: 2 },
+  stuRight: { alignItems: "center", gap: 6 },
   statusBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
   statusText: { fontSize: 14, fontWeight: "800" },
+  smsBtn: { width: 30, height: 30, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  // Notify banner
+  notifyBanner: { position: "absolute", left: 16, right: 16, borderRadius: 16, overflow: "hidden", shadowColor: "#ea580c", shadowOpacity: 0.5, shadowRadius: 12, elevation: 10 },
+  notifyBannerGrad: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
+  notifyBannerTitle: { color: "#fff", fontSize: 14, fontWeight: "800" },
+  notifyBannerSub: { color: "rgba(255,255,255,0.8)", fontSize: 11, marginTop: 1 },
 });

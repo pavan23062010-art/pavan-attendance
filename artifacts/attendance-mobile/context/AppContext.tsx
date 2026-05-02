@@ -18,6 +18,7 @@ export interface Student {
   rollNo: string;
   class: number;
   section: string;
+  parentMobile?: string;
 }
 
 export interface MonthRecord {
@@ -84,18 +85,18 @@ const DEFAULT_USERS: UserAccount[] = [
 ];
 
 const SEED_STUDENTS: Student[] = [
-  { id: "s1", name: "Ravi Kumar", rollNo: "1A001", class: 1, section: "A" },
-  { id: "s2", name: "Sita Devi", rollNo: "1A002", class: 1, section: "A" },
-  { id: "s3", name: "Arun Babu", rollNo: "1A003", class: 1, section: "A" },
-  { id: "s4", name: "Lakshmi P", rollNo: "1A004", class: 1, section: "A" },
-  { id: "s5", name: "Venkat Rao", rollNo: "1A005", class: 1, section: "A" },
-  { id: "s6", name: "Priya Reddy", rollNo: "1B001", class: 1, section: "B" },
-  { id: "s7", name: "Kiran Kumar", rollNo: "1B002", class: 1, section: "B" },
-  { id: "s8", name: "Divya Sri", rollNo: "1B003", class: 1, section: "B" },
-  { id: "s9", name: "Suresh M", rollNo: "1B004", class: 1, section: "B" },
-  { id: "s10", name: "Amith Raju", rollNo: "2A001", class: 2, section: "A" },
-  { id: "s11", name: "Bindu Priya", rollNo: "2A002", class: 2, section: "A" },
-  { id: "s12", name: "Charan Deep", rollNo: "2A003", class: 2, section: "A" },
+  { id: "s1",  name: "Ravi Kumar",   rollNo: "1A001", class: 1, section: "A", parentMobile: "9848012345" },
+  { id: "s2",  name: "Sita Devi",    rollNo: "1A002", class: 1, section: "A", parentMobile: "9848023456" },
+  { id: "s3",  name: "Arun Babu",    rollNo: "1A003", class: 1, section: "A" },
+  { id: "s4",  name: "Lakshmi P",    rollNo: "1A004", class: 1, section: "A", parentMobile: "9848034567" },
+  { id: "s5",  name: "Venkat Rao",   rollNo: "1A005", class: 1, section: "A", parentMobile: "9848045678" },
+  { id: "s6",  name: "Priya Reddy",  rollNo: "1B001", class: 1, section: "B", parentMobile: "9848056789" },
+  { id: "s7",  name: "Kiran Kumar",  rollNo: "1B002", class: 1, section: "B" },
+  { id: "s8",  name: "Divya Sri",    rollNo: "1B003", class: 1, section: "B", parentMobile: "9848067890" },
+  { id: "s9",  name: "Suresh M",     rollNo: "1B004", class: 1, section: "B", parentMobile: "9848078901" },
+  { id: "s10", name: "Amith Raju",   rollNo: "2A001", class: 2, section: "A", parentMobile: "9848089012" },
+  { id: "s11", name: "Bindu Priya",  rollNo: "2A002", class: 2, section: "A" },
+  { id: "s12", name: "Charan Deep",  rollNo: "2A003", class: 2, section: "A", parentMobile: "9848090123" },
 ];
 
 const generateSeedRecords = (): MonthRecord[] => {
